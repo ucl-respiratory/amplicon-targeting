@@ -118,6 +118,51 @@ build_cn <- function() {
 }
 
 ## ===========================================================================
+## ASCAT PURITY + PLOIDY  (GDC file-level fields, no file download needed)
+## ---------------------------------------------------------------------------
+## ASCAT estimates tumour purity (rho) and ploidy (psi) per sample. GDC strips
+## these from the harmonized gene-level TSV, but exposes them as file-LEVEL
+## metadata fields (tumor_purity, tumor_ploidy) on the ALLELE-SPECIFIC segment
+## file records. We query those fields directly (no bulk file download) and
+## aggregate per case. This is the DNA-based ASCAT purity; the pipeline's own
+## continuous ploidy (08_copynumber.R) is retained as primary, with the ASCAT
+## psi kept alongside as an independent reference.
+## Verified: all 1,744 CPTAC-3 AscatNGS segment files carry non-null purity.
+## ===========================================================================
+build_ascat_purity <- function() {
+  message("[gdc/purity] querying ASCAT tumor_purity/tumor_ploidy (file-level fields)")
+  q <- files() |>
+    GenomicDataCommons::filter(cases.project.project_id == GDC_PROJECT) |>
+    GenomicDataCommons::filter(data_type == "Allele-specific Copy Number Segment") |>
+    GenomicDataCommons::filter(analysis.workflow_type == "AscatNGS") |>
+    GenomicDataCommons::select(c("file_name", "tumor_purity", "tumor_ploidy")) |>
+    GenomicDataCommons::expand("cases")
+  x <- q |> GenomicDataCommons::results(size = 100000)
+  n <- length(x$file_id)
+  # caseid from the case submitter_id (C3L-xxxxx / C3N-xxxxx), 9-char key
+  caseid <- vapply(seq_len(n), function(i)
+    tryCatch(substr(x$cases[[i]]$submitter_id[1], 1, 9), error = function(e) NA_character_),
+    character(1))
+  dt <- data.table(caseid       = caseid,
+                   tumor_purity = as.numeric(x$tumor_purity),
+                   tumor_ploidy = as.numeric(x$tumor_ploidy))
+  dt <- dt[!is.na(caseid) & caseid %in% PROT_CASES & !is.na(tumor_purity)]
+  # one tumour per case in this cohort, but median-collapse defensively
+  ascat_purity <- dt[, .(tumor_purity       = median(tumor_purity, na.rm = TRUE),
+                         tumor_ploidy_ascat = median(tumor_ploidy, na.rm = TRUE),
+                         n_ascat_files      = .N), by = caseid]
+  save(ascat_purity, file = INPUTS_AUX_PURITY)
+  record_source("03_gdc_genomics", "GDC CPTAC-3 ASCAT tumour purity + ploidy (file-level fields)",
+                "https://api.gdc.cancer.gov (GenomicDataCommons)", INPUTS_AUX_PURITY,
+                note = sprintf("%d cases with ASCAT purity; purity range %.2f-%.2f",
+                               nrow(ascat_purity),
+                               min(ascat_purity$tumor_purity), max(ascat_purity$tumor_purity)))
+  message("[gdc/purity] ascat_purity: ", nrow(ascat_purity), " cases  ",
+          "purity median ", round(median(ascat_purity$tumor_purity), 3),
+          "  ASCAT ploidy median ", round(median(ascat_purity$tumor_ploidy_ascat), 3))
+}
+
+## ===========================================================================
 ## RNA  (STAR - Counts; 'unstranded' column; ENSEMBL->symbol sum; DESeq2 norm)
 ## ===========================================================================
 parse_star_counts <- function(path) {
@@ -258,7 +303,7 @@ build_meth <- function() {
 
 ## ---- Run all four layers (guarded so a partial run is resumable) ------------
 if (identical(Sys.getenv("FS_GDC_RUN"), "1") || !interactive()) {
-  build_cn(); build_rna(); build_snv(); build_meth()
+  build_cn(); build_ascat_purity(); build_rna(); build_snv(); build_meth()
 } else {
-  message("[gdc] functions defined. Set FS_GDC_RUN=1 to execute all four layers.")
+  message("[gdc] functions defined. Set FS_GDC_RUN=1 to execute all layers.")
 }

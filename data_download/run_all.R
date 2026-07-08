@@ -52,11 +52,13 @@ if (length(si)) {
 all_stages <- c(
   "01_annotation.R", "02_proteome_pdc.R", "03_gdc_genomics.R",
   "04_auxiliary.R",  "05_corum_depmap.R", "14_atac_gdc.R",
+  "15_uniprot_topology.R", "16_cellxgene.py",
   "06_harmonize.R",  "07_proteome_relative.R", "08_copynumber.R",
   "09_rna_meth_snv.R","10_assemble.R", "11_annotate.R",
   "12_protein_core.R","13_feature_adapter.R")
-# download stages (01-05 + the ATAC atlas download) — skipped by --from-cache
-download_stages <- c(all_stages[1:5], "14_atac_gdc.R")
+# download stages (01-05 + ATAC atlas + UniProt topology + CELLxGENE) — skipped by --from-cache
+download_stages <- c(all_stages[1:5], "14_atac_gdc.R",
+                     "15_uniprot_topology.R", "16_cellxgene.py")
 sel <- all_stages
 if (!is.na(stage_val) && nzchar(stage_val)) {
   rng <- strsplit(stage_val, ":")[[1]]
@@ -69,7 +71,7 @@ if (from_cache) sel <- setdiff(sel, download_stages)
 ## enable download stages for a from-scratch run ----------------------------
 if (!from_cache) {
   Sys.setenv(FS_GDC_RUN = "1", FS_AUX_RUN = "1", FS_CORUM_DEPMAP_RUN = "1",
-             FS_ATAC_RUN = "1")
+             FS_ATAC_RUN = "1", FS_TOPOLOGY_RUN = "1")
 }
 
 message("========================================================")
@@ -85,8 +87,17 @@ run_log <- data.frame(stage = character(), status = character(),
 for (s in sel) {
   message("\n>>> ", s)
   ts <- Sys.time()
-  ok <- tryCatch({ source(file.path(HERE, s)); "ok" },
-                 error = function(e) { message("  !! ERROR: ", conditionMessage(e)); "error" })
+  ok <- tryCatch({
+    if (grepl("\\.py$", s)) {
+      # Python stage (CELLxGENE). Pass OUT dir + census proxy via env. A non-zero
+      # exit is tolerated (stage self-skips when census is unreachable) but logged.
+      py <- Sys.getenv("FS_PYTHON", unset = "python")
+      Sys.setenv(CNT_DATA_OUT = DIR_TAB)
+      rc <- system2(py, shQuote(file.path(HERE, s)))
+      if (rc != 0) message("  (python stage exit ", rc, " — Fig-6 slice optional)")
+      "ok"
+    } else { source(file.path(HERE, s)); "ok" }
+  }, error = function(e) { message("  !! ERROR: ", conditionMessage(e)); "error" })
   dt <- as.numeric(difftime(Sys.time(), ts, units = "secs"))
   run_log <- rbind(run_log, data.frame(stage = s, status = ok, seconds = round(dt, 1)))
   if (ok == "error") stop("Stage ", s, " failed; see message above.")

@@ -55,15 +55,35 @@ chrom_med <- cn_long[!is.na(chrom) & !is.na(cn),
                      .(chrom_med = median(cn)), by = .(caseid, chrom)]
 ploidy <- chrom_med[, .(ploidy_continuous = median(chrom_med),
                         n_chrom = .N), by = caseid]
+
+## ---- ASCAT tumour purity + ploidy (optional; from GDC file-level fields) ----
+# Loaded here (not via IN) so it stays optional: if 03's build_ascat_purity has
+# not run, purity columns are simply NA and everything downstream is unchanged.
+if (exists("INPUTS_AUX_PURITY") && file.exists(INPUTS_AUX_PURITY)) {
+  .pe <- new.env(); load(INPUTS_AUX_PURITY, .pe)
+  ascat_purity <- as.data.table(.pe$ascat_purity)
+  ascat_purity[, caseid := norm_case(caseid)]
+  ploidy <- merge(ploidy, ascat_purity[, .(caseid, tumor_purity, tumor_ploidy_ascat)],
+                  by = "caseid", all.x = TRUE)
+  message("[cn] ASCAT purity joined for ",
+          sum(!is.na(ploidy$tumor_purity)), "/", nrow(ploidy), " caseids")
+} else {
+  ploidy[, `:=`(tumor_purity = NA_real_, tumor_ploidy_ascat = NA_real_)]
+  message("[cn] no ASCAT purity file (", 
+          if (exists("INPUTS_AUX_PURITY")) INPUTS_AUX_PURITY else "unset",
+          "); purity columns set to NA")
+}
 fwrite(ploidy, file.path(DIR_TAB, "ploidy_table.csv"))
 
 ## ---- Ploidy-adjusted CN (tidy) ---------------------------------------------
+# purity + ASCAT ploidy are per-case; broadcast onto the (gene, caseid) rows.
 cn_long <- merge(cn_long[, .(gene, caseid, cn)],
-                 ploidy[, .(caseid, ploidy_continuous)], by = "caseid", all.x = TRUE)
+                 ploidy[, .(caseid, ploidy_continuous, tumor_purity, tumor_ploidy_ascat)],
+                 by = "caseid", all.x = TRUE)
 cn_long[, cn_adjusted := cn / ploidy_continuous]
 setkey(cn_long, gene, caseid)
 stopifnot(!any(duplicated(cn_long[, .(gene, caseid)])))
-write_parquet(cn_long[, .(gene, caseid, cn, cn_adjusted)],
+write_parquet(cn_long[, .(gene, caseid, cn, cn_adjusted, tumor_purity, tumor_ploidy_ascat)],
               file.path(DIR_TAB, "cn_table.parquet"))
 
 ## ---- Figure 1: continuous ploidy distribution (vs old build if available) --

@@ -18,3 +18,10 @@ stage,source,url,produces
 05_corum_depmap,DepMap 23Q4 Model.csv (verbatim),figshare article 24667905,Model.csv
 05_corum_depmap,CCLE proteomics (protein_quant_current_normalized),https://gygi.hms.harvard.edu/data/ccle/protein_quant_current_normalized.csv.gz,Proteomics.csv
 14_atac_gdc,"TCGA ATAC-seq atlas normalized counts (Corces 2018, Science)",https://api.gdc.cancer.gov/data/38b8f311-f3a4-4746-9829-b8e3edb9c157,atac_gene_promoter_accessibility.parquet (5 types: LUAD/LSCC/CCRCC/GBM/UCEC; no PDA)
+03_gdc_genomics,GDC CPTAC-3 ASCAT tumour purity + ploidy (file-level fields on allele-specific segment files),"https://api.gdc.cancer.gov (GenomicDataCommons; fields tumor_purity, tumor_ploidy)",ascat_purity.RData -> tumor_purity + tumor_ploidy_ascat columns in cn_table + final tables
+05_corum_depmap,DepMap 23Q4 CRISPRGeneDependency (Chronos dependency probability),https://ndownloader.figshare.com/files/43346574,CRISPRGeneDependency.csv (verbatim; figshare 24667905)
+05_corum_depmap,DepMap 23Q4 AchillesCommonEssentialControls,https://ndownloader.figshare.com/files/43346361,AchillesCommonEssentialControls.csv (verbatim; figshare 24667905)
+04_auxiliary,HPA normal-tissue IHC (v24),https://v24.proteinatlas.org/download/tsv/normal_tissue.tsv.zip,normal_tissue.tsv (off-target protein screen)
+04_auxiliary,HPA normal single-cell RNA nTPM (v24),https://v24.proteinatlas.org/download/tsv/rna_single_cell_type.tsv.zip,rna_single_cell_type.tsv (magnitude-aware co-expression)
+15_uniprot_topology,UniProt REST membrane topology (surfaceome),https://rest.uniprot.org/uniprotkb/search,surface_topology_uniprot.parquet (accessibility filter)
+16_cellxgene,CZ CELLxGENE Discover census (malignant cells; pinned version),cellxgene-census 2025-11-08,"cellxgene_{LUAD,LSCC}_malignant.parquet (Fig 6 same-cell co-expression)"

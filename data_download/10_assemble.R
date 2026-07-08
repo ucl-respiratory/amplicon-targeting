@@ -51,7 +51,7 @@ omic <- keyset
 omic <- merge(omic, prot[, .(gene, caseid, tumor_code, prot_abs, prot_relative,
                              protein_measured, has_normal_ref, n_normal_ref)],
               by = c("gene","caseid"), all.x = TRUE)
-omic <- merge(omic, cn[,   .(gene, caseid, cn, cn_adjusted)],           by = c("gene","caseid"), all.x = TRUE)
+omic <- merge(omic, cn[,   .(gene, caseid, cn, cn_adjusted, tumor_purity, tumor_ploidy_ascat)], by = c("gene","caseid"), all.x = TRUE)
 omic <- merge(omic, rna[,  .(gene, caseid, rna_norm, rna_log2)],        by = c("gene","caseid"), all.x = TRUE)
 omic <- merge(omic, meth[, .(gene, caseid, meth_beta)],                 by = c("gene","caseid"), all.x = TRUE)
 omic <- merge(omic, snv[,  .(gene, caseid, n_variants, is_nonsilent)],  by = c("gene","caseid"), all.x = TRUE)
@@ -87,7 +87,8 @@ stopifnot(dup_n == 0)
 ## ---- Column order ----------------------------------------------------------
 setcolorder(omic, c("gene","caseid","tumor_code",
                     "prot_abs","prot_relative","protein_measured","has_normal_ref","n_normal_ref",
-                    "cn","cn_adjusted","rna_norm","rna_log2","meth_beta",
+                    "cn","cn_adjusted","tumor_purity","tumor_ploidy_ascat",
+                    "rna_norm","rna_log2","meth_beta",
                     "n_variants","is_mutated","is_nonsilent",
                     "has_protein","has_cn","has_rna","has_meth"))
 write_parquet(omic, file.path(DIR_TAB, "omic_table_clean.parquet"))

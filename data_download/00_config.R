@@ -71,6 +71,11 @@ INPUTS <- list(
   secreted    = file.path(PARSED, "secreted.genes.RData")     # secreted.genes (+ .full)
 )
 
+# ASCAT tumour purity + ploidy (per case), pulled from GDC file-level fields on
+# the allele-specific segment files. Loaded explicitly by 08_copynumber.R (not
+# via IN), so it is optional: absent -> purity columns are NA, pipeline unchanged.
+INPUTS_AUX_PURITY <- file.path(PARSED, "ascat_purity.RData")   # ascat_purity (caseid, tumor_purity, tumor_ploidy_ascat)
+
 ## Auxiliary parsed files loaded EXPLICITLY (not via IN) to avoid the name
 ## collisions noted above. The download stages still write these paths.
 INPUTS_AUX <- list(
@@ -152,6 +157,18 @@ HPA_SECRETED_URL <- paste0("https://www.proteinatlas.org/api/search_download.php
 ## DescribePROT — per-protein disorder/structure features, human proteome (9606).
 DESCRIBEPROT_URL <- "http://biomine.cs.vcu.edu/servers/DESCRIBEPROT/database_data_download/9606_value.csv"
 
+## Human Protein Atlas bulk downloads (zipped TSVs) used by the off-target and
+## single-cell analyses:
+##   normal_tissue.tsv.zip     -> IHC protein levels across normal tissues/cells
+##   rna_single_cell_type.tsv.zip -> normal single-cell RNA (nTPM) by cell type
+## These are the canonical HPA "Downloadable data" assets, pinned to the v24
+## release for reproducibility (the unversioned www path renamed normal_tissue
+## to normal_ihc_data; the versioned host keeps the stable filename).
+HPA_NORMAL_TISSUE_URL   <- Sys.getenv("FS_HPA_NORMAL_URL", unset =
+  "https://v24.proteinatlas.org/download/tsv/normal_tissue.tsv.zip")
+HPA_SINGLE_CELL_URL     <- Sys.getenv("FS_HPA_SC_URL", unset =
+  "https://v24.proteinatlas.org/download/tsv/rna_single_cell_type.tsv.zip")
+
 ## ADC Atlas — antibody-drug-conjugate target gene table (supplementary S3).
 ## Published static asset; recorded in manifest, path overridable.
 ADC_ATLAS_URL <- Sys.getenv("FS_ADC_URL", unset =
@@ -186,6 +203,17 @@ DEPMAP_FILES <- data.table(
   analysis_name = c("Copy_Number_Public_23Q4.csv",
                     "Expression_Public_23Q4.csv",
                     "Model.csv")
+)
+# DepMap 23Q4 CRISPR essentiality files (same figshare article 24667905), written
+# VERBATIM (no Entrez strip): the analysis reads the 'SYMBOL (EntrezID)' headers
+# as-is (context-aware essentiality splits on ' (').
+#   CRISPRGeneDependency.csv         -> Chronos dependency probability (models x genes), ~394 MB
+#   AchillesCommonEssentialControls.csv -> common-essential gene control list
+DEPMAP_CRISPR_FILES <- data.table(
+  figshare_name = c("CRISPRGeneDependency.csv", "AchillesCommonEssentialControls.csv"),
+  figshare_url  = c("https://ndownloader.figshare.com/files/43346574",
+                    "https://ndownloader.figshare.com/files/43346361"),
+  analysis_name = c("CRISPRGeneDependency.csv", "AchillesCommonEssentialControls.csv")
 )
 # DepMap proteomics (Gygi/CCLE) is NOT in the DepMap 23Q4 omics release; it comes
 # from the CCLE proteomics quant table. Recorded here for the manifest.

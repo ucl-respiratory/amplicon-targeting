@@ -38,6 +38,8 @@ The `(gene, caseid)` pair is **unique** in both final tables (asserted with
 | 04 | `04_auxiliary.R` | GTEx v8, TCSA, HPA, DescribePROT, ADC Atlas | `gtex`, `surface.genes`, `secreted.genes`, describeprot/adc raws |
 | 05 | `05_corum_depmap.R` | CORUM 5.x, DepMap 23Q4 (figshare), CCLE | `corum_humanComplexes.txt`, DepMap cell-line matrices |
 | 14 | `14_atac_gdc.R` | **TCGA ATAC-seq atlas** (Corces 2018, GDC) | `atac_gene_promoter_accessibility.parquet` (chromatin accessibility) |
+| 15 | `15_uniprot_topology.R` | **UniProt REST** (reviewed human) | `surface_topology_uniprot.parquet` (membrane topology → antigen accessibility) |
+| 16 | `16_cellxgene.py` | **CZ CELLxGENE census** (pinned `2025-11-08`) | `cellxgene_{LUAD,LSCC}_malignant.parquet` (tumour same-cell scRNA, Fig 6) |
 | 06 | `06_harmonize.R` | (assembly) | `master_samples.csv` (aliquot → caseid/type/group) |
 | 07 | `07_proteome_relative.R` | (assembly) | tumour-vs-normal relative protein + measured/ref flags |
 | 08 | `08_copynumber.R` | (assembly) | tidy CN + **continuous ploidy** + ploidy-adjusted CN |
@@ -122,6 +124,23 @@ then ENSEMBL→symbol sums and DESeq2 size-factor normalizes as before.
 **will not** match the 2022 HTSeq build to the digit. The CN→RNA dosage
 relationship is preserved (median Spearman ρ = 0.16, 80% of genes positive).
 
+### 4.2b Tumour purity + ASCAT ploidy — GDC file-level fields
+ASCAT estimates per-sample tumour **purity** (rho) and **ploidy** (psi). GDC
+strips these from the harmonized gene-level copy-number TSV, but exposes them as
+file-**level** metadata fields (`tumor_purity`, `tumor_ploidy`) on the
+**allele-specific copy-number segment** file records — not the gene-level ones,
+and not inside any downloaded file. Stage 03 (`build_ascat_purity`) queries those
+fields directly via `GenomicDataCommons` (no bulk file download) and aggregates
+per case, writing `ascat_purity.RData`. Stage 08 joins them onto `cn_table`, so
+both final tables carry two new columns after `cn_adjusted`:
+`tumor_purity` and `tumor_ploidy_ascat`.
+**Coverage:** 661 of 676 proteome cases have non-null ASCAT purity (median 0.57,
+range 0.20–1.0). **Cross-check:** the ASCAT ploidy (psi) correlates **r = 0.95**
+with the pipeline's independently-derived continuous ploidy (§5), confirming both
+ploidy estimates agree; purity is near-orthogonal to ploidy (r ≈ −0.03), as
+expected. The step is optional — if `ascat_purity.RData` is absent the columns
+are simply `NA` and nothing else changes.
+
 ### 4.3 Annotation — `org.Hs.eg.db` version drift
 `genemap` is rebuilt from the installed `org.Hs.eg.db` (3.22.0 here vs the older
 release used in 2022). Schema is identical (8 columns, autosomes only). Gene
@@ -164,6 +183,48 @@ reads it with plain `read.csv`, no `row.names`).
   headers), **not** part of the DepMap omics release — sourced separately.
 - **`Arm-level_CNAs.csv`** is derived arm-level CN, downloaded only if
   `FS_DEPMAP_ARM_URL` is configured; it is used solely by empirical validation.
+
+### 4.6b DepMap CRISPR essentiality (Fig 3 / context-aware essentiality)
+Stage 05 also fetches, verbatim from the same figshare article (24667905),
+`CRISPRGeneDependency.csv` (Chronos dependency probability, models × genes,
+~394 MB) and `AchillesCommonEssentialControls.csv` (common-essential control
+list). These carry `SYMBOL (EntrezID)` headers and are written **without** the
+Entrez strip — the essentiality analysis splits on `" ("` to recover the symbol.
+They drive the dependency classification and the EGFR conditional-driver
+reclassification (context-aware essentiality restricted to amplicon-high lines of
+the matched lineage).
+
+### 4.6c HPA bulk TSVs (off-target IHC + normal single-cell)
+Stage 04 additionally downloads two Human Protein Atlas bulk assets, pinned to
+the **v24** release: `normal_tissue.tsv` (IHC protein levels across normal
+tissues, for the off-target screen) and `rna_single_cell_type.tsv` (normal
+single-cell RNA nTPM by cell type, for the magnitude-aware co-expression /
+threshold-collapse analysis, Fig 5). The unversioned `www.proteinatlas.org` path
+renamed `normal_tissue`→`normal_ihc_data`; the versioned `v24.` host keeps the
+stable filename, so both are pinned there for reproducibility.
+
+### 4.8 UniProt membrane topology — antigen accessibility (stage 15)
+The accessibility filter (paper Fig 1 / Table 1) needs each surfaceome gene's
+membrane topology. Stage 15 queries the **UniProt REST** API (reviewed human
+entries, batches of 100 genes over `surface.genes`) for transmembrane-segment
+count, extracellular topological domains, signal peptide, and GPI-anchor
+lipidation, and classifies each gene as `surface_TM_ectodomain` (≥1 TM AND ≥1
+extracellular topological domain), `surface_GPI`, or a non-accessible class.
+`surface_accessible = surface_TM_ectodomain OR surface_GPI`. This reproduces the
+project's topology table exactly on spot checks (e.g. ABCC1 17 TM / 9
+extracellular loops; EGFR/MUC1/CD46/PIGR/XPR1 all accessible).
+
+### 4.9 CELLxGENE tumour single-cell — same-cell co-expression (stage 16)
+Stage 16 (the sole **Python** stage) pulls malignant-cell scRNA slices from the
+CZ CELLxGENE Discover census, version **pinned** to `2025-11-08` (the census is
+immutable per version, so a pinned slice is byte-reproducible). For LUAD (`lung
+adenocarcinoma`) and LSCC (`squamous cell lung carcinoma`) it fetches
+primary-data malignant cells × the co-target antigens and caches a detection
+matrix (cells × genes + `donor_id` + `nnz`). **PDA and endometrial malignant
+cells are absent from the census**, so only the LUAD/LSCC sets are testable.
+Note: TileDB's S3 VFS ignores `HTTP(S)_PROXY`; in a sandboxed network the proxy
+is passed via tiledb config (`TILEDB_PROXY_HOST`/`PORT`). The stage self-skips
+(exit 0) if the census is unreachable, leaving Fig 6 to be regenerated later.
 
 ### 4.7 Chromatin accessibility — TCGA ATAC-seq atlas (new layer)
 Stage 14 adds the chromatin-accessibility layer that CPTAC lacks, from the

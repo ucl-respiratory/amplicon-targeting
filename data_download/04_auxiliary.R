@@ -127,6 +127,36 @@ build_adc <- function() {
                         ADC_ATLAS_URL, adc)
 }
 
+## ===========================================================================
+## HPA bulk TSVs: normal-tissue IHC (off-target screen) + normal single-cell RNA
+## (magnitude-aware co-expression). Both are zipped TSVs; unzip to RAW/.
+## ===========================================================================
+build_hpa_bulk <- function() {
+  specs <- list(
+    list(url = HPA_NORMAL_TISSUE_URL, zip = "hpa_normal_tissue.tsv.zip",
+         tsv = "normal_tissue.tsv", src = "HPA normal-tissue IHC"),
+    list(url = HPA_SINGLE_CELL_URL,  zip = "hpa_rna_single_cell_type.tsv.zip",
+         tsv = "rna_single_cell_type.tsv", src = "HPA normal single-cell RNA (nTPM)")
+  )
+  for (s in specs) {
+    out_tsv <- file.path(RAW, s$tsv)
+    if (file.exists(out_tsv) && file.info(out_tsv)$size > 0) {
+      message("[hpa] cached: ", s$tsv); next
+    }
+    zp <- file.path(RAW, s$zip)
+    ok <- tryCatch({ fetch(s$url, zp); TRUE },
+                   error = function(e) { message("[hpa] download failed (", s$src, "): ",
+                                                  conditionMessage(e)); FALSE })
+    if (!ok) next
+    utils::unzip(zp, files = s$tsv, exdir = RAW, overwrite = TRUE)
+    if (!file.exists(out_tsv))       # some HPA zips nest the tsv; take first .tsv
+      utils::unzip(zp, exdir = RAW, overwrite = TRUE)
+    unlink(zp)
+    record_source("04_auxiliary", s$src, s$url, out_tsv, note = "HPA v24 bulk TSV")
+    message("[hpa] wrote ", s$tsv)
+  }
+}
+
 ## ---- Run (GTEx restricted to proteome genes when available) -----------------
 if (identical(Sys.getenv("FS_AUX_RUN"), "1") || !interactive()) {
   restrict <- NULL
@@ -134,7 +164,7 @@ if (identical(Sys.getenv("FS_AUX_RUN"), "1") || !interactive()) {
     e <- new.env(); load(INPUTS$proteome, e); restrict <- rownames(e$cptac.data)
   }
   build_gtex(restrict_genes = restrict)
-  build_surface(); build_secreted(); build_describeprot(); build_adc()
+  build_surface(); build_secreted(); build_describeprot(); build_adc(); build_hpa_bulk()
 } else {
   message("[aux] functions defined. Set FS_AUX_RUN=1 to execute all downloads.")
 }

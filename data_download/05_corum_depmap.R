@@ -105,6 +105,23 @@ depmap_fetch <- function() {
                   fig_url, out, note = "figshare article 24667905 (DepMap 23Q4 Public)")
     message("[depmap] wrote ", ana_nm)
   }
+  ## DepMap 23Q4 CRISPR essentiality files (verbatim; needed for Fig 3 /
+  ## context-aware essentiality). Same figshare article as the omics files.
+  if (exists("DEPMAP_CRISPR_FILES")) {
+    for (i in seq_len(nrow(DEPMAP_CRISPR_FILES))) {
+      out <- file.path(DEPMAP_DIR, DEPMAP_CRISPR_FILES$analysis_name[i])
+      if (file.exists(out) && file.info(out)$size > 0) {
+        message("[depmap] cached: ", basename(out)); next
+      }
+      fetch(DEPMAP_CRISPR_FILES$figshare_url[i], out)   # verbatim, no header reformat
+      record_source("05_corum_depmap",
+                    paste0("DepMap 23Q4 ", DEPMAP_CRISPR_FILES$figshare_name[i]),
+                    DEPMAP_CRISPR_FILES$figshare_url[i], out,
+                    note = "figshare article 24667905 (DepMap 23Q4 CRISPR dependency); verbatim")
+      message("[depmap] wrote ", basename(out))
+    }
+  }
+
   ## CCLE proteomics (not part of the DepMap omics release).
   prot <- file.path(DEPMAP_DIR, "Proteomics.csv")
   if (!(file.exists(prot) && file.info(prot)$size > 0)) {

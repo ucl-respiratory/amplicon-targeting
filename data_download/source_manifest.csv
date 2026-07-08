@@ -1,0 +1,20 @@
+stage,source,url,produces
+01_annotation,org.Hs.eg.db (Bioconductor),bioconductor::org.Hs.eg.db,genemap
+02_proteome_pdc,PDC GraphQL quantDataMatrix + biospecimenPerStudy,https://pdc.cancer.gov/graphql,"cptac.data, cptac.pheno, matched T-N (7 studies: PDC000125/127/153/204/221/234/270)"
+03_gdc_genomics,GDC CPTAC-3 Gene Level Copy Number (AscatNGS),https://api.gdc.cancer.gov (GenomicDataCommons),"cndata, cnpheno"
+03_gdc_genomics,GDC CPTAC-3 Gene Expression (STAR - Counts; MODERNIZED from HTSeq),https://api.gdc.cancer.gov,"rnadata, rnadata.norm, rnapheno"
+03_gdc_genomics,GDC CPTAC-3 Masked Somatic Mutation (Aliquot Ensemble),https://api.gdc.cancer.gov,"snvdata, snvpheno"
+03_gdc_genomics,GDC CPTAC-3 Methylation Beta Value (SeSAMe EPIC),https://api.gdc.cancer.gov,"methdata.genes, methdata.tss, methpheno"
+04_auxiliary,GTEx v8 gene median TPM,https://adult-gtex.storage.googleapis.com/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz,gtex (LUAD==LSCC==Lung)
+04_auxiliary,TCSA Table S2 surface genes,http://fcgportal.org/TCSA/Download/Table%20S2.xlsx,surface.genes
+04_auxiliary,TCSA Table S36 druggability,http://fcgportal.org/TCSA/Download/Table%20S36.xlsx,surface.genes (druggability merge)
+04_auxiliary,TCSA Table S38 drugs,http://fcgportal.org/TCSA/Download/Table%20S38.xlsx,drugs
+04_auxiliary,HPA predicted secreted proteins,"https://www.proteinatlas.org/api/search_download.php?search=protein_class:Predicted%20secreted%20proteins&format=tsv&columns=g,gs,eg,up,chr,chrp,pc,upbp&compress=no","secreted.genes, secreted.genes.full"
+04_auxiliary,DescribePROT human proteome (9606),http://biomine.cs.vcu.edu/servers/DESCRIBEPROT/database_data_download/9606_value.csv,describeprot_9606_value.csv (raw)
+04_auxiliary,ADC Atlas supplementary Table S3,https://static-content.springer.com/esm/art%3A10.1038%2Fs41417-023-00701-3/MediaObjects/41417_2023_701_MOESM2_ESM.xlsx,adc_atlas_tableS3.xlsx (raw)
+05_corum_depmap,CORUM 5.x humanComplexes (relaxed TLS for host),https://mips.helmholtz-muenchen.de/fastapi-corum/public/file/download_current_file?file_id=human&file_format=txt,corum_humanComplexes.txt
+05_corum_depmap,DepMap 23Q4 OmicsCNGene -> Copy_Number_Public_23Q4 (strip Entrez),figshare article 24667905,Copy_Number_Public_23Q4.csv
+05_corum_depmap,DepMap 23Q4 OmicsExpression -> Expression_Public_23Q4 (strip Entrez),figshare article 24667905,Expression_Public_23Q4.csv
+05_corum_depmap,DepMap 23Q4 Model.csv (verbatim),figshare article 24667905,Model.csv
+05_corum_depmap,CCLE proteomics (protein_quant_current_normalized),https://gygi.hms.harvard.edu/data/ccle/protein_quant_current_normalized.csv.gz,Proteomics.csv
+14_atac_gdc,"TCGA ATAC-seq atlas normalized counts (Corces 2018, Science)",https://api.gdc.cancer.gov/data/38b8f311-f3a4-4746-9829-b8e3edb9c157,atac_gene_promoter_accessibility.parquet (5 types: LUAD/LSCC/CCRCC/GBM/UCEC; no PDA)

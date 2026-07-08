@@ -1,0 +1,61 @@
+CN-targeting from-source pipeline -- QA dry-run report
+=====================================================
+generated: 2026-07-08 12:54:50.45778
+
+WHAT THIS TEST DOES
+-------------------
+The download stages (01-05) are unit-tested individually against live public
+endpoints (see per-stage notes). This dry-run exercises the ASSEMBLY chain
+(06-12) end-to-end through run_all.R --from-cache, reading the project's
+existing parsed .RData inputs, to prove the ported stages reproduce the exact
+final analysis tables. It isolates assembly correctness from download variance.
+
+COMMAND
+-------
+FS_PARSED=<cached parsed dir> Rscript from_source/run_all.R --from-cache --stages 06:12
+
+STAGE RUN LOG
+-------------
+stage                    status  seconds
+06_harmonize.R           ok        4.0
+07_proteome_relative.R   ok        4.1
+08_copynumber.R          ok        2.0
+09_rna_meth_snv.R        ok       10.5
+10_assemble.R            ok       25.7
+11_annotate.R            ok       22.8
+12_protein_core.R        ok       11.8
+
+FINAL TABLE VALIDATION (vs documented targets from the cached build)
+--------------------------------------------------------------------
+                                  rows          genes    caseids
+omic_table_annotated       18,788,020         29,313        666   [MATCH]
+  target                   18,788,020         29,313        666
+omic_table_protein_core     4,976,680          7,495        664   [MATCH]
+  target                    4,976,680          7,495        664
+
+invariant: (gene, caseid) unique in both tables ....................... PASS
+
+OMIC-LAYER COVERAGE (rows of the annotated table carrying each layer)
+---------------------------------------------------------------------
+protein   4,976,680  (26.5%)      rna    15,838,221  (84.3%)
+cn        5,672,888  (30.2%)      meth   13,474,510  (71.7%)
+mutated     102,711  ( 0.5%)      all-4   3,645,849  (19.4%)
+
+BIOLOGICAL SANITY (QC figures)
+------------------------------
+* mutation_frequency_top30.png : TP53, KRAS, TTN, PTEN lead -- expected CPTAC pan-cancer profile.
+* rna_vs_cn_scatter.png        : per-gene CN->RNA dosage median Spearman rho = 0.16, 80% positive.
+* ploidy_distribution.png      : continuous ploidy peaks at 2 (diploid) and 4 (WGD); no ploidy=1 pile-up.
+* protein_missingness.png      : 0.978-0.995 of protein values measured pre-imputation (residual gaps flagged).
+* protein_qc.png               : tumor-vs-normal LFC centred near 0; GBM excluded (no adjacent-normal proteome).
+* annotation_coverage.png      : 82.8% genes carry chromosome/ensembl; surface 11.9%, secreted 5.9%.
+* sample_overlap.png           : 530 caseids with all 5 omics; 655 with the proteome+CN core pair.
+* cn_adjusted_density.png      : ploidy-adjusted CN mode near 1 (balanced vs each tumour's baseline).
+
+NOTE: stage 13 (feature_adapter) requires DescribePROT + ADC Atlas downloads
+(stage 04) and is validated separately; it appends structural/ECDF feature
+columns and emits str_omic_table_rebuilt.csv without altering the core tables.
+
+CONCLUSION: the ported assembly chain reproduces the cached-build final tables
+exactly on identical inputs. Numerical differences in a true from-scratch run
+come only from the documented upstream source drift (see DOWNLOAD_PIPELINE.md).

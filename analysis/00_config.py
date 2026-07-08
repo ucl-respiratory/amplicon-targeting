@@ -90,8 +90,6 @@ PATHS = {
     # CPTAC matched tumour/normal proteomics (stage 03 CPTAC ingestion) -> off-target safety
     "cptac_matched_protein": TAB / "cptac_matched_protein.csv",
     "cptac_matched_pheno":   TAB / "cptac_matched_pheno.csv",
-    # GTEx median expression for nominated targets (analysis-time API query, cached)
-    "gtex_targets":  TAB / "gtex_median_expression_targets.parquet",
 }
 
 # ---- Analysis parameters (pinned to the manuscript) -------------------------

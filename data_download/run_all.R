@@ -55,10 +55,14 @@ all_stages <- c(
   "15_uniprot_topology.R", "16_cellxgene.py",
   "06_harmonize.R",  "07_proteome_relative.R", "08_copynumber.R",
   "09_rna_meth_snv.R","10_assemble.R", "11_annotate.R",
-  "12_protein_core.R","13_feature_adapter.R")
-# download stages (01-05 + ATAC atlas + UniProt topology + CELLxGENE) — skipped by --from-cache
+  "12_protein_core.R","13_feature_adapter.R",
+  "17_ensembl_coords.py", "18_gtex_bulk.py")
+# download stages (01-05 + ATAC atlas + UniProt topology + CELLxGENE + Ensembl
+# coords + GTEx bulk) — skipped by --from-cache. Stages 17/18 depend on stage 13
+# (they key on the assembled gene universe / nominated targets), so they run last.
 download_stages <- c(all_stages[1:5], "14_atac_gdc.R",
-                     "15_uniprot_topology.R", "16_cellxgene.py")
+                     "15_uniprot_topology.R", "16_cellxgene.py",
+                     "17_ensembl_coords.py", "18_gtex_bulk.py")
 sel <- all_stages
 if (!is.na(stage_val) && nzchar(stage_val)) {
   rng <- strsplit(stage_val, ":")[[1]]

@@ -11,7 +11,7 @@
 # The Ensembl lookup is cached to OUT/tables/_ensembl_coords.parquet so the
 # pipeline is deterministic and offline-friendly after the first run.
 # =============================================================================
-import functools, json, time
+import functools
 import numpy as np, pandas as pd
 from scipy.stats import pearsonr
 import sys

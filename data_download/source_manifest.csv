@@ -25,3 +25,5 @@ stage,source,url,produces
 04_auxiliary,HPA normal single-cell RNA nTPM (v24),https://v24.proteinatlas.org/download/tsv/rna_single_cell_type.tsv.zip,rna_single_cell_type.tsv (magnitude-aware co-expression)
 15_uniprot_topology,UniProt REST membrane topology (surfaceome),https://rest.uniprot.org/uniprotkb/search,surface_topology_uniprot.parquet (accessibility filter)
 16_cellxgene,CZ CELLxGENE Discover census (malignant cells; pinned version),cellxgene-census 2025-11-08,"cellxgene_{LUAD,LSCC}_malignant.parquet (Fig 6 same-cell co-expression)"
+17_ensembl_coords,Ensembl REST symbol lookup (GRCh38),https://rest.ensembl.org/lookup/symbol/homo_sapiens,ensembl_gene_coords.parquet (gene length + 1Mb density features)
+18_gtex_bulk,GTEx v8 bulk median-TPM GCT (all genes x 54 tissues),https://adult-gtex.storage.googleapis.com/bulk-gex/v8/rna-seq/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz,gtex_v8_median_tpm.parquet (off-target normal-tissue breadth)

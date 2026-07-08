@@ -40,6 +40,8 @@ The `(gene, caseid)` pair is **unique** in both final tables (asserted with
 | 14 | `14_atac_gdc.R` | **TCGA ATAC-seq atlas** (Corces 2018, GDC) | `atac_gene_promoter_accessibility.parquet` (chromatin accessibility) |
 | 15 | `15_uniprot_topology.R` | **UniProt REST** (reviewed human) | `surface_topology_uniprot.parquet` (membrane topology → antigen accessibility) |
 | 16 | `16_cellxgene.py` | **CZ CELLxGENE census** (pinned `2025-11-08`) | `cellxgene_{LUAD,LSCC}_malignant.parquet` (tumour same-cell scRNA, Fig 6) |
+| 17 | `17_ensembl_coords.py` | **Ensembl REST** symbol lookup (GRCh38) | `ensembl_gene_coords.parquet` (gene chrom/start/end/strand → gene-length + 1 Mb-density features) |
+| 18 | `18_gtex_bulk.py` | **GTEx v8 bulk** median-TPM GCT (all genes × 54 tissues) | `gtex_v8_median_tpm.parquet` (off-target normal-tissue breadth) |
 | 06 | `06_harmonize.R` | (assembly) | `master_samples.csv` (aliquot → caseid/type/group) |
 | 07 | `07_proteome_relative.R` | (assembly) | tumour-vs-normal relative protein + measured/ref flags |
 | 08 | `08_copynumber.R` | (assembly) | tidy CN + **continuous ploidy** + ploidy-adjusted CN |

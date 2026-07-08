@@ -1,0 +1,17 @@
+phase,step,group_set,added,n_groups,oof_spearman,delta
+single_group,0,G1_alone,G1,1,0.3593,0.3593
+single_group,0,G3_alone,G3,1,0.3045,0.3045
+single_group,0,G8_alone,G8,1,0.2379,0.2379
+single_group,0,G2_alone,G2,1,0.1715,0.1715
+single_group,0,G9_alone,G9,1,0.1532,0.1532
+single_group,0,G5_alone,G5,1,0.1354,0.1354
+single_group,0,G6_alone,G6,1,0.1182,0.1182
+single_group,0,G7_alone,G7,1,0.1002,0.1002
+forward_selection,1,G1,G1,1,0.3593,0.3593
+forward_selection,2,G1+G3,G3,2,0.4592,0.0999
+forward_selection,3,G1+G3+G8,G8,3,0.4979,0.0387
+forward_selection,4,G1+G3+G8+G7,G7,4,0.5218,0.0239
+forward_selection,5,G1+G3+G8+G7+G2,G2,5,0.5315,0.0097
+forward_selection,6,G1+G3+G8+G7+G2+G5,G5,6,0.5403,0.0088
+forward_selection,7,G1+G3+G8+G7+G2+G5+G6,G6,7,0.545,0.0047
+forward_selection,8,G1+G3+G8+G7+G2+G5+G6+G9,G9,8,0.5468,0.0018

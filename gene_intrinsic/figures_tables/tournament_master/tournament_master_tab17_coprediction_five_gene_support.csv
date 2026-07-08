@@ -1,0 +1,6 @@
+gene,in_top100_matrices,tumours_present,top_copred_partners,copred_with_other_query_genes,supports_tight_cluster_claim
+ACTL6A,0/6,NONE,n/a,none (no two query genes co-occur in any top-100),NO
+TBL1XR1,5/6,"CCRCC,LSCC,LUAD,PDA,UCEC",KDM3A (1.00); SNRNP200 (1.00); PRPF8 (1.00); RIF1 (1.00); MSH6 (1.00); MCM4 (1.00),none (no two query genes co-occur in any top-100),NO
+POLR2H,0/6,NONE,n/a,none (no two query genes co-occur in any top-100),NO
+FNDC3B,0/6,NONE,n/a,none (no two query genes co-occur in any top-100),NO
+NMD3,0/6,NONE,n/a,none (no two query genes co-occur in any top-100),NO

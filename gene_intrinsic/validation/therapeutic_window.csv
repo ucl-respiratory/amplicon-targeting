@@ -1,0 +1,4 @@
+gene,surface_verdict,gtex_median_nTPM,gtex_n_tissues_expressed,gtex_max_nTPM,gtex_max_tissue,gtex_heart,gtex_liver,gtex_kidney,gtex_lung,hpa_tissue_specificity,hpa_tissue_distribution,tcga_luad_median_rsem,tcga_lusc_median_rsem,therapeutic_window
+ATP13A3,FAIL: no accessible extracellular ectodomain,2.7,34/36,7.5,blood vessel,7.4,5.3,2.7,4.2,Low tissue specificity,Detected in all,2123.2,3615.2,WIDER: restricted normal expression
+ATP1B3,PASS: plasma-membrane + substantial ectodomain,81.7,36/36,384.1,adrenal gland,97.4,23.2,103.0,183.5,Low tissue specificity,Detected in all,1621.2,7829.9,NARROW: high + ubiquitous normal expression (off-tumour toxicity risk)
+PLSCR1,MARGINAL: ectodomain only 13 aa,25.1,36/36,60.4,adipose tissue,24.7,36.4,46.1,45.5,Low tissue specificity,Detected in all,1319.8,1446.6,NARROW: high + ubiquitous normal expression (off-tumour toxicity risk)

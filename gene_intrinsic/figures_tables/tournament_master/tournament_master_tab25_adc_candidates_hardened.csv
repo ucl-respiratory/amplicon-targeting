@@ -1,0 +1,25 @@
+rank,gene,mean_transmission_prob,observed_transmit_rate,surface,network_corroborated,network_isolated,n_string_nbrs_3q,transfer_mean_pct,transfer_across_sd,transfer_stability_ratio,transfer_context_dependent,transfer_stable,gnomad_LOEUF,dep_mean_effect,essentiality_toxicity_flag,buffering_flag,thesis_lens_flags,confidence_flag
+1,TFRC,0.7436,0.6389,1,low-transmission neighbourhood,False,2,0.8763,0.0913,5.2825,False,False,0.581,-0.9401,True,False,essentiality toxicity,speculative
+2,ATP13A3,0.6928,0.7064,1,isolated,True,0,0.9382,0.0189,2.8615,False,False,0.22,-0.019,False,False,none,supported
+3,LPP,0.6845,0.0092,1,high-transmission neighbourhood,False,1,0.9663,0.0197,4.3831,False,False,0.56,0.0601,False,True,buffered/over-predicted,speculative
+4,ITGB5,0.6534,0.5526,1,low-transmission neighbourhood,False,1,0.7773,0.2476,6.5003,True,False,0.706,-0.4774,False,False,context-dependent (lineage risk),supported
+5,ATP1B3,0.5686,0.5312,1,isolated,True,0,0.136,0.0306,4.8549,False,False,0.683,-0.3999,False,False,none,supported
+6,IL1RAP,0.5575,0.5421,1,isolated,True,0,0.7388,0.2582,6.6256,True,False,0.444,0.05,False,False,context-dependent (lineage risk),supported
+7,PLD1,0.5521,0.5041,1,isolated,True,0,0.4779,0.3099,13.4023,True,False,0.876,-0.0227,False,False,context-dependent (lineage risk),supported
+8,RNF13,0.5449,0.0381,1,isolated,True,0,0.7439,0.0736,4.7176,False,False,0.901,0.0156,False,False,none,speculative
+9,ALCAM,0.5442,0.3382,1,isolated,True,0,0.3527,0.2048,5.2991,True,False,0.386,-0.041,False,False,context-dependent (lineage risk),speculative
+10,PLXND1,0.512,0.0253,1,low-transmission neighbourhood,False,1,0.7601,0.0697,2.4169,False,False,0.157,-0.016,False,True,buffered/over-predicted,speculative
+11,PLSCR1,0.4932,0.505,1,high-transmission neighbourhood,False,1,0.7385,0.086,3.8296,False,False,0.73,0.0748,False,False,none,supported
+12,PLXNA1,0.4729,0.3947,1,high-transmission neighbourhood,False,1,0.6897,0.0653,1.9446,False,True,0.262,0.002,False,False,none,supported
+13,DLG1,0.3957,0.3945,1,isolated,True,0,0.3143,0.0992,3.3556,False,False,0.286,0.0223,False,False,none,supported
+14,CD47,0.258,0.1159,1,low-transmission neighbourhood,False,1,0.179,0.0581,3.0375,False,False,0.373,0.0357,False,False,none,speculative
+15,PLSCR4,0.2304,0.0099,1,isolated,True,0,0.4144,0.1294,4.6495,False,False,1.153,0.1222,False,False,none,speculative
+16,SLC9A9,0.228,0.1458,1,isolated,True,0,0.3725,0.1575,5.7833,False,False,0.955,0.0422,False,False,none,supported
+17,SLCO2A1,0.2053,0.0,1,isolated,True,0,0.3378,0.1407,2.9653,False,False,1.053,-0.1066,False,False,none,speculative
+18,ACPP,0.166,0.2963,1,isolated,True,0,0.1509,0.0878,4.6648,False,False,1.403,,False,False,none,speculative
+19,MYLK,0.1657,0.0,1,high-transmission neighbourhood,False,4,0.2216,0.1579,3.8077,False,False,0.528,0.0953,False,False,none,speculative
+20,CD200,0.1443,0.0147,1,low-transmission neighbourhood,False,1,0.3156,0.1372,5.0433,False,False,0.56,0.0738,False,False,none,speculative
+21,HEG1,0.1114,0.0,1,low-transmission neighbourhood,False,1,0.0802,0.0325,4.5256,False,False,0.573,0.1218,False,False,none,speculative
+22,MME,0.1052,0.0654,1,low-transmission neighbourhood,False,1,0.2339,0.3122,9.8416,True,False,0.923,-0.0069,False,False,context-dependent (lineage risk),supported
+23,AP2M1,0.1032,0.0088,1,high-transmission neighbourhood,False,1,0.0857,0.023,8.3116,False,False,0.19,-0.8075,True,False,essentiality toxicity,speculative
+24,ARL6,0.1016,0.0282,1,isolated,True,0,0.2315,0.0445,4.5605,False,False,0.917,0.109,False,False,none,speculative

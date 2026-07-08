@@ -116,7 +116,7 @@ export_gene_intrinsic/
                                        Random-AP reported beside AU-PR.
 
   figures_tables/
-    consolidated_figure_table_provenance.csv   the provenance register: 42 rows, one
+    consolidated_figure_table_provenance.csv   the provenance register: 44 rows, one
                                        per consolidated figure/table, each with source
                                        path, source SHA256, Science version id,
                                        consolidated filename and consolidated SHA256.

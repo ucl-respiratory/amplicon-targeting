@@ -1,0 +1,15 @@
+deliverable,path,resolves,sha256_16,bytes
+manuscript_gene_intrinsic.md,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/manuscript_gene_intrinsic.md,True,e2540415240a9486,22565
+manuscript_gene_intrinsic.docx,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/manuscript_gene_intrinsic.docx,True,751664d14c1cdcba,1240899
+manuscript_gene_intrinsic.pdf,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/manuscript_gene_intrinsic.pdf,True,9af98322524f1132,1437018
+science_phase_narrative.md,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/science_phase_narrative.md,True,9aced641f10d20d5,8644
+science_phase_manifest.csv,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/science_phase_manifest.csv,True,ac27569e104493bc,14821
+references_verified.csv,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/references_verified.csv,True,8e9fcb69ac97596f,2059
+science_phase_verification.csv,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/science_phase_verification.csv,True,90c5c1ad50e3662c,6049
+consolidated_adc_candidates_all_axes.csv,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/consolidated_adc_candidates_all_axes.csv,True,d9b951c1eb11d77a,4203
+consolidated_figure_table_provenance.csv,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/consolidated_figure_table_provenance.csv,True,86f7131bf112ad25,23963
+manuscript_number_verification.csv,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/manuscript_number_verification.csv,True,0170534e5e93bebf,2669
+tournament_master_fig18_gene_intrinsic_evidence.png,/Users/jameslam/Desktop/Work/Jie/Cache/pipeline_v2/science_consolidation/tournament_master_fig18_gene_intrinsic_evidence.png,True,d3080ead35ff850b,365345
+build_manuscript_document.py,/Users/jameslam/src/CN_targeting/python/build_manuscript_document.py,True,cd04cdde29264d92,15878
+repo:manuscript.docx,/Users/jameslam/src/CN_targeting/manuscripts/manuscript_gene_intrinsic.docx,True,751664d14c1cdcba,1240899
+repo:manuscript.pdf,/Users/jameslam/src/CN_targeting/manuscripts/manuscript_gene_intrinsic.pdf,True,9af98322524f1132,1437018

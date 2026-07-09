@@ -1,0 +1,25 @@
+filename,version_id,description,stage
+network_integration_summary.md,b9888334-d45f-4377-b624-964126e73396,"Summary of Stages 0-5, reviewer note",Stage 5
+head_to_head.csv,bb4d3715-23fb-4d2e-84cf-a2e5711bad7a,"Arm comparison A/B/C/C'/C'', both cohorts",Stage 2
+head_to_head_robustness.csv,2bd25286-4a18-4703-87c6-ff706cf1d037,10k perm null + network-variant robustness,Stage 2-3
+head_to_head_delta.png,b7602adc-61e1-4843-8964-e74d4b417611,"Delta figure, effect sizes + p-values",Stage 2
+stage3_robustness.csv,1b20980d-c841-4797-954e-9b9eb559e576,Network-variant deltas (STRING700/900/OmniPath),Stage 3
+stage3_robustness.png,6903b44d-c9ed-42af-a626-4d178e5ec32b,Coverage-vs-gain across 3 networks (annotated),Stage 3
+network_adc_modules.csv,b953adc0-b07b-410f-ad0f-fcc680e93d71,Per-candidate network corroboration,Stage 4
+network_adc_module_summary.csv,2463d185-fdae-4aff-8e4e-ed1eecf15c14,7 module summary,Stage 4
+network_adc_modules.png,5e0bae54-1518-487e-ae09-c457be8a8488,ADC module figure,Stage 4
+network_coverage.csv,2f580390-5e1c-40cc-87a2-4f50c36acdd2,STRING/KEGG coverage of modelled genes,Stage 0b
+network_coverage_degree.png,4f6a7595-d6cb-46ae-9ecb-606d6a736221,Coverage + degree comparison,Stage 0b
+network_edges.parquet,83c667e3-41ce-42f8-a6f5-aa8775b311a3,STRING700+900 edge lists,Stage 0b
+network_integration.py,ad81774c-2bf8-428d-adec-1f630c494474,Leakage-safe fold-aware harness,all
+leakage_selfcheck.csv,86e1b0cd-3dbe-4738-81c4-52281c6f652f,50-check leakage self-check (all features),Stage 1
+repro_anchor_check.csv,95e40d0d-3e46-462e-ab5b-ecc5196bdfc8,Bit-exact anchor gate,Step 1
+README.md,591883f2-7898-419a-a2e2-ae7b768f8437,Public-ready repository README,Workstream B
+environment_freeze.md,4eb49e74-6b2f-4de8-bc7b-c1dc1a47780d,Pinned key versions freeze,Workstream B
+data_dictionary_complete.csv,e5dae262-bc2c-41f2-908c-d1102fe50d80,Full data dictionary + leakage flags,Workstream B
+figure_provenance.csv,efcd14b7-1ee8-410c-a42d-c8e7814affd3,Figure/table -> script provenance,Workstream B
+reference_resolution.csv,124825bb-5270-4cdb-bd85-6e8f20288f0a,"19 verified citations, 13 markers",Workstream C
+thesis_introduction_skeleton_resolved.md,1d4b7a7e-43b6-48d3-8821-9c74814e66cd,Skeleton with inline DOIs,Workstream C
+results_purity_subsection.md,3c79ffab-0a3a-4bd1-8541-b2651664dfb9,Purity folded into Results narrative,Workstream D
+cross_reference_register.csv,dc7c1314-bcfe-415b-8957-fdce4a7d33ee,"11 placeholders (5 resolved, 6 author)",Workstream D
+cross_reference_sync_summary.md,0cc27e81-bf56-45c2-b77f-65cb0892a25d,Cross-ref sync summary,Workstream D

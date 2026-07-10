@@ -38,9 +38,18 @@ omic <- merge(omic, gm1, by.x = "gene", by.y = "symbol", all.x = TRUE)
 stopifnot(nrow(omic) == n0)                            # no inflation
 
 ## ---- surface / secreted boolean flags --------------------------------------
-sg <- as.data.table(IN$surface.genes)
-surface_sym  <- unique(na.omit(sg$HGNC.Symbol.x))
-secreted_sym <- unique(na.omit(IN$secreted.genes))
+## Optional TCSA/HPA surfaceome: if those auxiliary downloads failed the sets
+## are absent (IN has no surface.genes/secreted.genes); flags resolve empty and
+## the gap is recorded, rather than fabricating membership.
+if (!is.null(IN$surface.genes)) {
+  sg <- as.data.table(IN$surface.genes)
+  surface_sym <- unique(na.omit(sg$HGNC.Symbol.x))
+} else {
+  warning("surface.genes absent; is_surface set FALSE for all genes")
+  surface_sym <- character(0)
+}
+secreted_sym <- if (!is.null(IN$secreted.genes))
+  unique(na.omit(IN$secreted.genes)) else character(0)
 omic[, is_surface  := gene %in% surface_sym]
 omic[, is_secreted := gene %in% secreted_sym]
 

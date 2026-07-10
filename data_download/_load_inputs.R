@@ -18,8 +18,21 @@ IN <- new.env(parent = emptyenv())
 
 manifest_rows <- list()
 
+# Optional inputs: absent -> warn and skip (downstream stages must tolerate).
+# surface/secreted come from TCSA (fcgportal.org) + HPA; if those auxiliary
+# downloads fail, the load-bearing cn/rna/prot cascade is unaffected and the
+# surfaceome flags simply resolve empty (recorded as a documented gap).
+OPTIONAL_TAGS <- c("surface", "secreted")
+
 load_one <- function(tag, path) {
-  if (!file.exists(path)) stop("Missing input for '", tag, "': ", path)
+  if (!file.exists(path)) {
+    if (tag %in% OPTIONAL_TAGS) {
+      warning("Optional input '", tag, "' missing (", basename(path),
+              "); skipping — downstream flags resolve empty.")
+      return(invisible(character(0)))
+    }
+    stop("Missing input for '", tag, "': ", path)
+  }
   fsz  <- file.info(path)$size
   fmt  <- as.character(file.info(path)$mtime)
   fmd5 <- unname(tools::md5sum(path))

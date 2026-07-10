@@ -84,6 +84,31 @@ find_cached <- function(file_name) {
   if (length(f) == 0) NA_character_ else f[1]
 }
 
+## Batched, resumable GDC download. gdcdata() caches per-file, so a transient
+## SSL drop only loses the in-flight batch; we retry the remaining ids. This
+## turns the RNA layer (~700 files) from all-or-nothing into resume-on-failure.
+gdc_fetch_batched <- function(file_ids, label = "gdc",
+                              batch = 25L, max_passes = 40L) {
+  file_ids <- unique(file_ids)
+  for (pass in seq_len(max_passes)) {
+    remaining <- file_ids
+    ok <- 0L; failed_batches <- 0L
+    for (start in seq(1L, length(remaining), by = batch)) {
+      idx <- start:min(start + batch - 1L, length(remaining))
+      res <- tryCatch({ gdcdata(remaining[idx], progress = FALSE); TRUE },
+                      error = function(e) { message("  [", label, "] batch fail: ",
+                                                     conditionMessage(e)); FALSE })
+      if (isTRUE(res)) ok <- ok + length(idx) else failed_batches <- failed_batches + 1L
+      Sys.sleep(0.5)
+    }
+    message(sprintf("[%s] pass %d: %d batches failed", label, pass, failed_batches))
+    if (failed_batches == 0L) { message("[", label, "] all batches complete"); return(invisible(TRUE)) }
+    Sys.sleep(3)
+  }
+  warning("[", label, "] exhausted retries; proceeding with whatever cached")
+  invisible(FALSE)
+}
+
 ## ===========================================================================
 ## COPY NUMBER  (AscatNGS gene-level; copy_number, max-aggregate per gene)
 ## ===========================================================================
@@ -178,7 +203,7 @@ build_rna <- function() {
   rp[, caseid := substr(fifelse(is.na(tumor_sid), normal_sid, tumor_sid), 1, 9)]
   rp <- rp[!is.na(tumor_sid)]                                # tumour RNA
   rp <- rp[!duplicated(caseid)][caseid %in% PROT_CASES]
-  gdcdata(rp$file_id, progress = FALSE)
+  gdc_fetch_batched(rp$file_id, label = "gdc/rna")
   cols <- list(); ens_ref <- NULL
   for (i in seq_len(nrow(rp))) {
     f <- find_cached(rp$file_name[i]); if (is.na(f)) next

@@ -54,10 +54,16 @@ STRICT <- nzchar(Sys.getenv("JAMES_STRICT_UNIPROT"))
 
 # DescribePROT + ADC Atlas: downloaded by 04_auxiliary.R into RAW/. Fall back to
 # the legacy locations if a from-scratch download was skipped.
+# Primary location is RAW/ (04_auxiliary.R). A legacy CNT_ROOT fallback existed
+# for a pre-download layout; guard it so an undefined CNT_ROOT does not error
+# when the primary file is simply present or the aux download was skipped.
+.cnt_root <- if (exists("CNT_ROOT")) CNT_ROOT else NA_character_
 RAW_DP  <- { p <- file.path(RAW, "describeprot_9606_value.csv")
-             if (file.exists(p)) p else file.path(CNT_ROOT, "old", "data", "raw", "9606_value.csv") }
+             if (file.exists(p) || is.na(.cnt_root)) p
+             else file.path(.cnt_root, "old", "data", "raw", "9606_value.csv") }
 ADC_CSV <- { p <- file.path(RAW, "adc_atlas_tableS3.xlsx")
-             if (file.exists(p)) p else file.path(CNT_ROOT, "old", "data",
+             if (file.exists(p) || is.na(.cnt_root)) p
+             else file.path(.cnt_root, "old", "data",
                      "ADC_atlas_41417_2023_701_MOESM2_ESM_tableS3.csv") }
 
 ## ===========================================================================
@@ -113,34 +119,47 @@ message("[adapter] ECDF relative-protein rows: ", nrow(rel),
 ## ===========================================================================
 ## PART 2 -- DESCRIBEPROT structure features joined to genes via UniProt
 ## ===========================================================================
-dp <- fread(RAW_DP, skip = 21)                 # ACC + 20 structure/annot cols
-# numeric-ize the structure columns (cols 4..end); ACC/entry/name stay char
-struct_cols <- names(dp)[4:ncol(dp)]
-dp[, (struct_cols) := lapply(.SD, as.numeric), .SDcols = struct_cols]
+## DescribePROT is an auxiliary structural-feature source; if its download was
+## unavailable, emit an empty gene_struct so the load-bearing omic columns
+## (cn/rna/prot) still assemble. These structure columns are not used by the
+## transmission cascade; their absence is recorded in the coverage report.
+if (file.exists(RAW_DP)) {
+  dp <- fread(RAW_DP, skip = 21)                 # ACC + 20 structure/annot cols
+  # numeric-ize the structure columns (cols 4..end); ACC/entry/name stay char
+  struct_cols <- names(dp)[4:ncol(dp)]
+  dp[, (struct_cols) := lapply(.SD, as.numeric), .SDcols = struct_cols]
 
-uni <- as.data.frame(org.Hs.egUNIPROT)         # gene_id, uniprot_id
-sym <- as.data.frame(org.Hs.egSYMBOL)          # gene_id, symbol
-smap <- merge(sym, uni, by = "gene_id")        # symbol <-> uniprot (all pairs)
-setDT(smap)
+  uni <- as.data.frame(org.Hs.egUNIPROT)         # gene_id, uniprot_id
+  sym <- as.data.frame(org.Hs.egSYMBOL)          # gene_id, symbol
+  smap <- merge(sym, uni, by = "gene_id")        # symbol <-> uniprot (all pairs)
+  setDT(smap)
 
-if (STRICT) {
-  smap1 <- smap[!duplicated(gene_id)]                     # James' exact recipe
-  gene2acc <- unique(smap1[, .(symbol, uniprot_id)])
+  if (STRICT) {
+    smap1 <- smap[!duplicated(gene_id)]                     # James' exact recipe
+    gene2acc <- unique(smap1[, .(symbol, uniprot_id)])
+  } else {
+    # keep pairs whose ACC exists in DESCRIBEPROT, pick smallest ACC per symbol
+    cand <- smap[uniprot_id %in% dp$ACC, .(symbol, uniprot_id)]
+    gene2acc <- unique(cand)[order(symbol, uniprot_id)][, .(uniprot_id = uniprot_id[1]), by = symbol]
+  }
+  setnames(dp, "ACC", "uniprot_id")
+  setnames(gene2acc, "symbol", "gene")
+  gene_struct <- merge(gene2acc, dp, by = "uniprot_id", all.x = TRUE)
+  # keep gene + the 18 modelling columns James references (+ ProteinName for trace)
+  keep_struct <- c("gene","uniprot_id", struct_cols)
+  gene_struct <- gene_struct[, intersect(keep_struct, names(gene_struct)), with = FALSE]
+  setkey(gene_struct, gene)
+  n_feat_genes <- gene_struct[!is.na(get(struct_cols[1])), uniqueN(gene)]
+  message("[adapter] DESCRIBEPROT: genes with structure features = ", n_feat_genes,
+          if (STRICT) "  (STRICT/James recipe)" else "  (match-any-uniprot)")
 } else {
-  # keep pairs whose ACC exists in DESCRIBEPROT, pick smallest ACC per symbol
-  cand <- smap[uniprot_id %in% dp$ACC, .(symbol, uniprot_id)]
-  gene2acc <- unique(cand)[order(symbol, uniprot_id)][, .(uniprot_id = uniprot_id[1]), by = symbol]
+  struct_cols <- character(0)
+  gene_struct <- data.table(gene = character(0), uniprot_id = character(0))
+  setkey(gene_struct, gene)
+  n_feat_genes <- 0L
+  warning("DescribePROT source absent (", basename(RAW_DP),
+          "); structure feature columns omitted from str_omic.")
 }
-setnames(dp, "ACC", "uniprot_id")
-setnames(gene2acc, "symbol", "gene")
-gene_struct <- merge(gene2acc, dp, by = "uniprot_id", all.x = TRUE)
-# keep gene + the 18 modelling columns James references (+ ProteinName for trace)
-keep_struct <- c("gene","uniprot_id", struct_cols)
-gene_struct <- gene_struct[, intersect(keep_struct, names(gene_struct)), with = FALSE]
-setkey(gene_struct, gene)
-n_feat_genes <- gene_struct[!is.na(get(struct_cols[1])), uniqueN(gene)]
-message("[adapter] DESCRIBEPROT: genes with structure features = ", n_feat_genes,
-        if (STRICT) "  (STRICT/James recipe)" else "  (match-any-uniprot)")
 
 ## ===========================================================================
 ## PART 3 -- ADC distinct-genes list (union of tableS3 symbols)
@@ -153,21 +172,28 @@ message("[adapter] DESCRIBEPROT: genes with structure features = ", n_feat_genes
 # the published .xlsx supplement (04_auxiliary.R downloads the .xlsx). Read
 # whichever we have; both share the grid layout (title row, cancer-code row,
 # then a gene-symbol grid).
-if (grepl("\\.xlsx?$", ADC_CSV, ignore.case = TRUE)) {
-  suppressWarnings(suppressMessages(library(readxl)))
-  # sheet holding table S3 (fall back to first sheet); skip the title row
-  sheets <- readxl::excel_sheets(ADC_CSV)
-  s3 <- sheets[grepl("S3|target", sheets, ignore.case = TRUE)][1]
-  if (is.na(s3)) s3 <- sheets[1]
-  adc_raw <- as.data.table(readxl::read_excel(ADC_CSV, sheet = s3, skip = 1,
-                                              col_names = FALSE))
+## ADC Atlas is an auxiliary annotation list; tolerate its absence.
+if (file.exists(ADC_CSV)) {
+  if (grepl("\\.xlsx?$", ADC_CSV, ignore.case = TRUE)) {
+    suppressWarnings(suppressMessages(library(readxl)))
+    # sheet holding table S3 (fall back to first sheet); skip the title row
+    sheets <- readxl::excel_sheets(ADC_CSV)
+    s3 <- sheets[grepl("S3|target", sheets, ignore.case = TRUE)][1]
+    if (is.na(s3)) s3 <- sheets[1]
+    adc_raw <- as.data.table(readxl::read_excel(ADC_CSV, sheet = s3, skip = 1,
+                                                col_names = FALSE))
+  } else {
+    adc_raw <- fread(ADC_CSV, header = FALSE, skip = 1, fill = TRUE)  # skip title row
+  }
+  cancer_codes <- as.character(unlist(adc_raw[1, ]))               # header row of codes
+  adc_vals <- unique(as.character(unlist(adc_raw[-1, ])))          # all gene cells
+  adc_genes <- sort(setdiff(adc_vals[nzchar(adc_vals)], cancer_codes))
+  message("[adapter] ADC distinct genes: ", length(adc_genes))
 } else {
-  adc_raw <- fread(ADC_CSV, header = FALSE, skip = 1, fill = TRUE)  # skip title row
+  adc_genes <- character(0)
+  warning("ADC Atlas source absent (", basename(ADC_CSV),
+          "); adc_distinct_genes list empty.")
 }
-cancer_codes <- as.character(unlist(adc_raw[1, ]))               # header row of codes
-adc_vals <- unique(as.character(unlist(adc_raw[-1, ])))          # all gene cells
-adc_genes <- sort(setdiff(adc_vals[nzchar(adc_vals)], cancer_codes))
-message("[adapter] ADC distinct genes: ", length(adc_genes))
 
 ## ===========================================================================
 ## PART 4 -- Assemble the James-compatible wide CSV

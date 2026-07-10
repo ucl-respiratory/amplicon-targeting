@@ -51,27 +51,45 @@ meth_canon <- function(x) {
   gsub("\\.", "-", x)                                    # dots -> dashes
 }
 mm <- as.matrix(IN$methdata.genes)
-colnames(mm) <- meth_canon(colnames(mm))
-n_rep_cols <- sum(duplicated(colnames(mm)) | duplicated(colnames(mm), fromLast = TRUE))
-meth <- as.data.table(mm, keep.rownames = "gene")
-meth <- melt(meth, id.vars = "gene", variable.name = "caseid",
-             value.name = "meth_beta", variable.factor = FALSE)
-# average across replicate aliquots (single-aliquot cases unaffected: mean of 1)
-meth <- meth[, .(meth_beta = mean(meth_beta, na.rm = TRUE)), by = .(gene, caseid)]
-meth[is.nan(meth_beta), meth_beta := NA_real_]
+if (nrow(mm) == 0L || ncol(mm) == 0L) {
+  # Methylation is a documented empty stub in this build (ChAMP unsolvable on
+  # R4.5). Emit an empty but well-typed meth table so downstream left-joins add
+  # NA meth columns rather than failing; the gap is recorded in the layer report.
+  meth <- data.table(gene = character(0), caseid = character(0),
+                     meth_beta = numeric(0))
+  n_rep_cols <- 0L
+  message("[meth] empty stub (ChAMP unavailable) -> 0 caseids")
+} else {
+  colnames(mm) <- meth_canon(colnames(mm))
+  n_rep_cols <- sum(duplicated(colnames(mm)) | duplicated(colnames(mm), fromLast = TRUE))
+  meth <- as.data.table(mm, keep.rownames = "gene")
+  meth <- melt(meth, id.vars = "gene", variable.name = "caseid",
+               value.name = "meth_beta", variable.factor = FALSE)
+  # average across replicate aliquots (single-aliquot cases unaffected: mean of 1)
+  meth <- meth[, .(meth_beta = mean(meth_beta, na.rm = TRUE)), by = .(gene, caseid)]
+  meth[is.nan(meth_beta), meth_beta := NA_real_]
+  message("[meth] collapsed ", n_rep_cols, " replicate columns -> ",
+          uniqueN(meth$caseid), " canonical caseids")
+}
 setkey(meth, gene, caseid); stopifnot(!any(duplicated(meth[, .(gene, caseid)])))
 write_parquet(meth, file.path(DIR_TAB, "meth_table.parquet"))
-message("[meth] collapsed ", n_rep_cols, " replicate columns -> ",
-        uniqueN(meth$caseid), " canonical caseids")
 
 ## ---- SNV --------------------------------------------------------------------
 sv <- as.data.table(IN$snvdata)
-sv[, caseid := norm_case(caseid)]
-silent_classes <- c("Silent", "Synonymous_Variant")   # none present, robust anyway
-snv <- sv[, .(n_variants  = .N,
-              is_nonsilent = any(!classification %in% silent_classes)),
-          by = .(gene, caseid)]
-snv[, is_mutated := TRUE]                              # any row = mutated
+if (nrow(sv) == 0L || !("caseid" %in% names(sv))) {
+  # SNV is a documented empty stub in this build (maftools unsolvable on R4.5).
+  snv <- data.table(gene = character(0), caseid = character(0),
+                    n_variants = integer(0), is_nonsilent = logical(0),
+                    is_mutated = logical(0))
+  message("[snv] empty stub (maftools unavailable) -> 0 caseids")
+} else {
+  sv[, caseid := norm_case(caseid)]
+  silent_classes <- c("Silent", "Synonymous_Variant")   # none present, robust anyway
+  snv <- sv[, .(n_variants  = .N,
+                is_nonsilent = any(!classification %in% silent_classes)),
+            by = .(gene, caseid)]
+  snv[, is_mutated := TRUE]                              # any row = mutated
+}
 setkey(snv, gene, caseid); stopifnot(!any(duplicated(snv[, .(gene, caseid)])))
 write_parquet(snv, file.path(DIR_TAB, "snv_table.parquet"))
 
@@ -102,6 +120,7 @@ p1 <- ggplot(per_gene, aes(rho)) +
 ggsave(file.path(DIR_FIG, "rna_vs_cn_scatter.png"), p1, width = 6.5, height = 4.4, dpi = 200)
 
 ## ---- Figure 2: top-30 most frequently mutated genes ------------------------
+if (nrow(snv) > 0L) {
 mut_freq <- snv[, .(n_cases = uniqueN(caseid)), by = gene][order(-n_cases)][1:30]
 mut_freq[, gene := factor(gene, levels = rev(gene))]
 p2 <- ggplot(mut_freq, aes(n_cases, gene)) +
@@ -112,6 +131,7 @@ p2 <- ggplot(mut_freq, aes(n_cases, gene)) +
   theme_minimal(base_size = 10) +
   theme(panel.grid.major.y = element_blank())
 ggsave(file.path(DIR_FIG, "mutation_frequency_top30.png"), p2, width = 6.5, height = 6, dpi = 200)
+} else message("[snv] empty stub -> skipping mutation-frequency figure")
 
 ## ---- Diagnostics -----------------------------------------------------------
 message("[rna]  rows: ", nrow(rna),  "  genes: ", uniqueN(rna$gene),  "  caseids: ", uniqueN(rna$caseid))
@@ -120,5 +140,6 @@ message("[snv]  rows: ", nrow(snv),  "  genes: ", uniqueN(snv$gene),  "  caseids
         "  (long MAF rows: ", nrow(sv), ")")
 message("[rna_vs_cn] per-gene median rho = ", round(med_rho, 3),
         "  frac positive = ", round(frac_pos, 3), "  (genes = ", nrow(per_gene), ")")
-message("[snv] top gene: ", as.character(mut_freq$gene[nrow(mut_freq)]),
-        " mutated in ", max(mut_freq$n_cases), " caseids")
+if (exists("mut_freq"))
+  message("[snv] top gene: ", as.character(mut_freq$gene[nrow(mut_freq)]),
+          " mutated in ", max(mut_freq$n_cases), " caseids")

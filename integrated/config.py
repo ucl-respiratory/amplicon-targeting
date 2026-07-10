@@ -92,6 +92,7 @@ PATHS = {
     "nonessential":   DEPMAP / "AchillesNonessentialControls.csv",
     "cxg_luad":       _TAB_CENSUS / "cellxgene_LUAD_malignant.parquet",
     "cxg_lscc":       _TAB_CENSUS / "cellxgene_LSCC_malignant.parquet",
+    "cxg_gbm":        _TAB_CENSUS / "cellxgene_GBM_malignant.parquet",
     "hpa_normal":     RAW / "normal_tissue.tsv",
     "hpa_singlecell": RAW / "rna_single_cell_type.tsv",
 }
@@ -107,6 +108,7 @@ REL_TISSUE_HI   = 0.80   # prot.rel.tissue > 0.8 == co-elevated
 DEP_ESSENTIAL   = 0.50   # DepMap dependency >= 0.5 == essential
 SC_DETECT_NTPM  = 10     # single-cell detection floor
 SC_BINDING_NTPM = 25     # binding-relevant threshold
+SC_DEPTH_BINS   = 10     # per-cell depth (nnz) deciles for the depth-stratified co-detection null
 N_BOOTSTRAP     = 2000
 N_PERMUTATION   = 1000
 

@@ -76,7 +76,7 @@ def _figure(counts):
                  fontsize=10.5,fontweight="bold",pad=12,loc="center")
     ax.text(cx,-0.12,"Co-elevation tested per recurrent amplicon across the four proteome-supported "
             "cohorts (CCRCC, LSCC, LUAD, UCEC).\nNominated antigens span all four; single-cell "
-            "co-detection is demonstrated where a malignant census slice exists (LUAD, LSCC).",
+            "co-detection is demonstrated where a malignant census slice exists (LUAD, LSCC, GBM).",
             ha="center",va="center",fontsize=6.4,color="#555",style="italic")
     fig.savefig(cfg.DIR_FIG / "fig2_target_funnel.png", dpi=200, bbox_inches="tight")
 

@@ -124,6 +124,7 @@ REFS = {
  "UniProt2023": "The UniProt Consortium. UniProt: the Universal Protein Knowledgebase in 2023. Nucleic Acids Res. 2023;51:D523-31. doi:10.1093/nar/gkac1052.",
  "Uhlen2015": "Uhl\u00e9n M, et al. Tissue-based map of the human proteome. Science. 2015;347:1260419. doi:10.1126/science.1260419.",
  "Karlsson2021": "Karlsson M, et al. A single-cell type transcriptomics map of human tissues. Sci Adv. 2021;7:eabh2169. doi:10.1126/sciadv.abh2169.",
+ "BauschFluck2015": "Bausch-Fluck D, et al. A mass spectrometric-derived cell surface protein atlas. PLoS One. 2015;10:e0121314. doi:10.1371/journal.pone.0121314.",
  # chromatin / single-cell / methods
  "Corces2018": "Corces MR, et al. The chromatin accessibility landscape of primary human cancers. Science. 2018;362:eaav1898. doi:10.1126/science.aav1898.",
  "Loyfer2023": "Loyfer N, et al. A DNA methylation atlas of normal human cell types. Nature. 2023;613:355-64. doi:10.1038/s41586-022-05580-6.",
@@ -186,24 +187,31 @@ abstract = (
     f"{rho:.2f} (R\u00b2 = {r2:.2f}); it is not positional (holding out whole "
     f"chromosome arms changes accuracy by {darm:.3f}); and it transfers across "
     f"lineages (Kendall W = {dW:.2f}). This licenses a predictor that nominates "
-    "surface targets in cancer types where no proteome exists. We combine measured "
-    "co-elevation, where proteomics is deep, with the predictor, where it is thin, "
+    "surface targets in cancer types that lack a tissue-referenced proteome. We "
+    "combine measured co-elevation, where such proteomics is deep, with the "
+    "predictor, where it is thin, "
     "in an empirical-Bayes posterior whose prior-only floor "
     f"(\u03c1 = {floor:.2f}) is the ceiling for a zero-proteomics context. Requiring "
     "co-elevation on a recurrent amplicon with measured transmissibility and an "
     "accessible extracellular ectodomain nominates 22 surface antigens on 18 "
     "distinct recurrent amplicons across four cancer types (renal, endometrial and "
-    "both lung subtypes)\u2014for example EGFR+ITGB8+TSPAN13+TTYH3 on lung 7p, "
+    "both lung subtypes)\u2014for example ITGB8+TSPAN13+TTYH3 on lung 7p, "
     "NCSTN+HSD17B7+MPZL1 on 1q (recurrent in several types), the transferrin "
-    "receptor TFRC on squamous 3q, and FZD1 on clear-cell renal 7q. In single "
-    "malignant cells the antigens of each construct are co-detected above "
-    "independence (all p < 0.005, bootstrap intervals clear of 1.0), and at "
-    "binding-relevant thresholds the normal-tissue co-expression collapses\u2014so an "
-    "avidity AND-gate that binds stably only where both antigens are present would "
-    "spare normal cells that carry only one. Single-cell co-detection is "
-    "demonstrated in the two lung subtypes, for which malignant single-cell atlases "
-    "exist; the other cohorts are nominated on the same genetic and topological "
-    "evidence. The result is a pan-cancer, confidence-tiered catalogue of "
+    "receptor TFRC on squamous 3q, and FZD1 on clear-cell renal 7q; 21 of the 22 "
+    "are non-driver passengers and 10 are confirmed on the experimental Cell "
+    "Surface Protein Atlas. In single malignant cells, against a null that controls "
+    "for per-cell sequencing depth, the co-detected constructs sit at a modest "
+    "1.05\u20131.45\u00d7 above independence (p = 0.001, donor-block bootstrap "
+    "intervals clear of 1.0), and at binding-relevant thresholds the normal-tissue "
+    "co-expression collapses\u2014so an avidity AND-gate that binds stably only where "
+    "the antigens co-occur would spare normal cells that carry only one. Observed "
+    "transmissibility itself transfers strongly between the two lung subtypes "
+    "(\u03c1 = 0.82) and more weakly across distant lineages, consistent with the "
+    "shared cell-of-origin regulation the map implies. Single-cell co-detection is "
+    "demonstrated wherever a malignant single-cell atlas exists (both lung subtypes "
+    "and glioblastoma \u2014 the latter entirely from prediction, using no GBM "
+    "surface-abundance measurement); the remaining cohorts are nominated on the same genetic and "
+    "topological evidence. The result is a pan-cancer, confidence-tiered catalogue of "
     "multi-antigen ADC co-target sets with a concrete plan to test them.")
 para(abstract)
 print("part 1 (title/abstract) ok")
@@ -256,7 +264,7 @@ para(
     "transmission for every amplified gene across six tumour types, locate where "
     "the signal is gated, and show that a gene's transmissibility is a stable, "
     "intrinsic property that can be predicted from gene biology alone\u2014so the "
-    "map extends to cancer types that have no proteome of their own. We then "
+    "map extends to cancer types that lack a tissue-referenced proteome of their own. We then "
     "combine direct measurement with prediction, gate the result on surface "
     "accessibility, and test in single cells whether the nominated antigen sets "
     "co-occur tightly enough for AND-gated targeting to be selective. The output "
@@ -351,7 +359,7 @@ para(
     f"the six tumour types at a Kendall concordance of {dW:.2f}. A gene's "
     "transmissibility can therefore be anticipated before its protein is measured, "
     "which is what licenses extending the target map to cancer types with no "
-    "proteome of their own.")
+    "tissue-referenced proteome of their own.")
 figure("fig3_predictor.png",
        "Figure 2. Transmissibility is predictable from gene properties alone "
        "(gradient-boosted regressor, 39 gene-property features, no protein-derived "
@@ -424,27 +432,47 @@ para(
     "NCSTN+MPZL1+ADAM15 set on endometrial 1q. The topology gate is decisive: it "
     "removes high-transmission genes with no accessible ectodomain (for example "
     "EFNA1, a GPI-anchored ligand), and downgrades multipass transporters even "
-    "when amplified. The DepMap dependency effect is reported for each antigen as "
-    "a liability flag; none of the nominated antigens is broadly essential (all "
-    "effects above \u22120.40), EGFR being the most dependency-associated "
-    "(\u22120.237).")
+    "when amplified. Twenty-one of the 22 antigens are non-driver passengers; only "
+    "EGFR (lung 7p) is a canonical oncogenic driver, and the passenger thesis does "
+    "not depend on it (below). Two further non-driver antigens carry an "
+    "essentiality caveat (TFRC, DepMap \u22120.94; VMP1, \u22121.13); the remaining "
+    "19 are neither drivers nor broadly essential. As orthogonal evidence for the "
+    "surface call, 10 of the 22 \u2014 including the transmission leaders TFRC, "
+    "NCSTN, MPZL1, ITGB8, ADAM15 and TTYH3 \u2014 are listed on the experimental "
+    "Cell Surface Protein Atlas{cite:BauschFluck2015} (mass-spectrometric surface "
+    "capture); the remainder retain their UniProt topology call, with CSPA absence "
+    "treated as weak evidence because surface capture sees only N-glycosylated "
+    "proteins in the cell types assayed. Each antigen carries its driver, "
+    "essentiality and CSPA flags in Table 1.")
 
 H("Table 1. Nominated surface antigens (pan-cancer)", level=3)
 if ant_rows:
-    hdrs = ["Cohort","Amplicon","Antigen","Measured","Predicted","n amp.","Ecto (aa)","TM","DepMap"]
+    hdrs = ["Cohort","Amplicon","Antigen","Meas.","Pred.","n amp.","Ecto","TM","DepMap","Class","CSPA"]
     def _f(x, nd=2):
         try: return f"{float(x):.{nd}f}"
         except Exception: return x
+    def _cls(r):
+        if str(r.get("is_driver")).lower()=="true": return "driver"
+        try:
+            if float(r.get("dep_effect") or 0) <= -0.40: return "ess."
+        except Exception: pass
+        return "passenger"
+    def _cspa(r):
+        c = str(r.get("cspa_category",""))
+        return "high" if c.startswith("1") else ("put." if c.startswith("2") else
+               ("unspec." if c.startswith("3") else "\u2014"))
     trows = [[r["cohort"], r["amplicon"], r["antigen"], _f(r["obs_transmit"]),
               _f(r["pred_transmit"]), r["n_amplified"], _f(r["ecto_aa"],0),
-              _f(r["n_tm"],0), _f(r["dep_effect"],3)]
+              _f(r["n_tm"],0), _f(r["dep_effect"],2), _cls(r), _cspa(r)]
              for r in sorted(ant_rows, key=lambda r:(r["cohort"], r["amplicon"], -float(r["obs_transmit"])))]
-    add_table(hdrs, trows, fs=7)
+    add_table(hdrs, trows, fs=6.5)
 para("Cohort = CPTAC cancer type in which the amplicon is recurrent; Measured / "
      "predicted = observed and gene-property-predicted transmissibility; n amp. = "
      "amplified cases underlying the measurement; Ecto = UniProt extracellular "
      "residues; TM = transmembrane helices; DepMap = mean CRISPR dependency effect "
-     "(more negative = more essential).", italic=True)
+     "(more negative = more essential); Class = driver / broadly essential (ess., "
+    "DepMap \u2264 \u22120.40) / passenger; CSPA = Cell Surface Protein Atlas category "
+    "(high-confidence / putative / unspecific / \u2014 not listed).", italic=True)
 
 para(
     "Because the antigens on one amplicon rise together, an antibody that engages "
@@ -458,15 +486,19 @@ para(
     "malignant single-cell slice (here CCRCC/UCEC) "
     f"{'are' if n_nomonly!=1 else 'is'} nominated on the same genetic and "
     "topological evidence and flagged accordingly, as no malignant single-cell "
-    "atlas is available for those cohorts to test co-detection. Enrichment "
-    "magnitude scales with valence\u2014adding a third or fourth antigen shrinks the "
-    "independence baseline\u2014so the load-bearing result is that every tested "
-    "construct is co-detected well above independence with a bootstrap interval "
-    "clear of 1.0 and permutation p < 0.005, not the absolute fold itself.")
+    "atlas is available for those cohorts to test co-detection. Co-detection is "
+    "scored against a null that permutes each antigen within per-cell "
+    "sequencing-depth deciles, so the reported enrichment is excess co-occurrence "
+    "beyond what shared depth alone produces (a marginal-only null inflates it "
+    "several-fold). On that null, the co-detected constructs are above independence "
+    "with a bootstrap interval clear of 1.0 and permutation p = 0.001, at a modest "
+    "1.05\u20131.45\u00d7; two bivalent pairs (LUAD 1q, GBM 20q) are not significant. "
+    "The load-bearing result is the direction and significance of same-cell "
+    "co-occurrence, not the absolute fold.")
 
 H("Table 2. Proposed multivalent ADC constructs", level=3)
 if con_rows:
-    hdrs2 = ["Construct","Valence","Same-cell enrichment (\u00d7)","95% CI","perm p","Cells / donors","Single-cell tested"]
+    hdrs2 = ["Construct","Valence","Evidence","Same-cell enrichment (\u00d7)","95% CI","perm p","Cells / donors","Single-cell tested"]
     def _cf(r, k):
         v = r.get(k,"")
         return "\u2014" if v in ("","nan","NaN") else v
@@ -475,52 +507,94 @@ if con_rows:
         tested = str(r.get("single_cell_tested")).lower()=="true"
         ci = f'{_cf(r,"ci_lo")}\u2013{_cf(r,"ci_hi")}' if tested else "\u2014"
         cd = f'{_cf(r,"n_cells").split(".")[0]} / {_cf(r,"n_donors").split(".")[0]}' if tested else "\u2014"
-        trows2.append([r["construct"], r["valence"], _cf(r,"enrich"), ci,
-                       _cf(r,"perm_p"), cd, "yes" if tested else "nominated"])
-    add_table(hdrs2, trows2, fs=7)
-para("Same-cell enrichment is observed co-detection divided by the independence "
-     "expectation in malignant single cells (donor-block bootstrap 95% CI; "
-     "marginal-preserving permutation p). Constructs on cohorts without a malignant "
-     "single-cell atlas are nominated on genetic and topological evidence; co-detection "
-     "cannot be evaluated there and they are labelled as such.", italic=True)
+        trows2.append([r["construct"], r["valence"], r.get("evidence","measured"),
+                       _cf(r,"enrich"), ci, _cf(r,"perm_p"), cd, "yes" if tested else "nominated"])
+    add_table(hdrs2, trows2, fs=6.5)
+para("Same-cell enrichment is observed co-detection divided by a depth-matched "
+     "expectation in malignant single cells (null permutes each antigen within "
+     "per-cell sequencing-depth deciles; donor-block bootstrap 95% CI; depth-"
+     "stratified permutation p). Evidence = measured (nominated from tissue-referenced "
+     "proteomics) or prediction-only (nominated from predicted transmissibility because "
+     "that cohort has no tissue-referenced proteome; GBM). Constructs on cohorts without "
+     "a malignant single-cell "
+     "atlas are nominated on genetic and topological evidence; co-detection cannot "
+     "be evaluated there and they are labelled as such.", italic=True)
 
 figure("fig5_surface_targets.png",
-       "Figure 4. Pan-cancer surface targets. (a) The nominated antigens, coloured "
-       "by cohort, placed against all 6,926 genes by predicted and measured "
-       "transmissibility\u2014they occupy the high-transmissibility regime above the "
-       "0.40 floor. (b) Nominated antigens per amplicon across all four cohorts, "
-       "bar = maximum measured transmissibility on the amplicon. (c) Same-cell "
-       "co-detection enrichment for the constructs with a single-cell slice (95% "
-       "CI; all p < 0.005); constructs on cohorts without a malignant single-cell "
-       "atlas are nominated but not shown here.")
+       "Figure 4. Pan-cancer surface targets. (a) The measured-nomination antigens "
+       "(the four proteome-supported cohorts), coloured by cohort, placed against all "
+       "6,926 genes by predicted and observed transmissibility\u2014they occupy the "
+       "high-transmissibility regime above the 0.40 floor; glioblastoma is "
+       "prediction-only and has no observed value, so it is not plotted here (its "
+       "antigens are in Supplementary Table S4). (b) Nominated antigens per amplicon "
+       "in those four cohorts, bar = maximum observed transmissibility on the "
+       "amplicon. (c) Same-cell co-detection enrichment (depth-stratified null) for "
+       "the constructs with a malignant single-cell slice (LUAD, LSCC measured; GBM "
+       "prediction-only; 95% CI; significant constructs p = 0.001, LUAD 1q and GBM "
+       "20q n.s.); constructs on cohorts without a malignant single-cell atlas are "
+       "nominated but not shown here.")
 
 H("AND-gated co-targeting is selective in single cells", level=2)
 # on-tumour numbers from the tested (single-cell) constructs, new schema
 _tested = [r for r in con_rows if str(r.get("single_cell_tested")).lower()=="true"]
-con_enr = [float(r["enrich"]) for r in _tested] if _tested else []
+# range is quoted for the SIGNIFICANT constructs (perm p < 0.05, CI clear of 1.0);
+# the non-significant LUAD 1q (0.99x, p=0.84) is reported separately in the text.
+_sig = [r for r in _tested if float(r.get("perm_p", 1)) < 0.05
+        and float(r.get("ci_lo", 0)) > 1.0]
+con_enr = [float(r["enrich"]) for r in _sig] if _sig else []
 c_lo = min(con_enr) if con_enr else None; c_hi = max(con_enr) if con_enr else None
+# borderline = permutation-significant but bootstrap CI touches 1.0; ns = neither
+_ns  = [r for r in _tested if not (float(r.get("perm_p",1))<0.05)]
+_bord= [r for r in _tested if float(r.get("perm_p",1))<0.05
+        and float(r.get("ci_lo",0))<=1.0]
+n_sc_tested = len(_tested); n_sig = len(_sig); n_ns = len(_ns); n_bord = len(_bord)
+_ns_names = ", ".join(sorted(r["amplicon"].replace("_"," ") for r in _ns)) or "none"
+_gbm_tested = [r for r in _tested if r.get("cohort")=="GBM"]
+_gbm_sig = [r for r in _gbm_tested if float(r.get("perm_p",1))<0.05
+            and float(r.get("ci_lo",0))>1.0]
 _biv = [r for r in _tested if r["valence"]=="bivalent"]
 _biv_enr = [float(r["enrich"]) for r in _biv]
 para(
     "For a multivalent construct to be efficient on tumour, its antigens must appear "
     "together in the same malignant cell, not merely in the same tumour, and for it "
     "to be selective the co-occurrence must fall away in normal tissue. We test both "
-    "in single malignant cells from two lung cancer types "
-    "(41,615 LUAD cells from 130 donors and 33,234 LSCC cells from 42 donors, "
-    "from the CELLxGENE "
-    "census{cite:CELLxGENE2025}). For each construct whose cancer type has a "
+    "in single malignant cells from three cancer types with a malignant single-cell "
+    "atlas (41,615 LUAD cells from 130 donors, 33,234 LSCC cells from 42 donors, and "
+    "390,761 glioblastoma cells from 208 donors, from the CELLxGENE "
+    "census{cite:CELLxGENE2025}); the glioblastoma constructs are prediction-only "
+    "(GBM has raw proteome in CPTAC but no tissue-referenced proteome, so it yields "
+    "no measured surface nominations), and their single-cell test is a genuine "
+    "out-of-sample check of the prediction pipeline. For each construct whose "
+    "cancer type has a "
     "single-cell slice we ask whether its nominated antigens are co-detected in the "
-    f"same cell more often than independent detection would predict. All {len(_tested)} "
-    "tested constructs are co-detected above independence "
-    f"({c_lo:.1f}\u2013{c_hi:.1f}\u00d7), every one with permutation p < 0.005 and a "
-    "donor-block bootstrap interval clear of 1.0 (Table 2, Figure 4c). Absolute "
-    "magnitude scales with valence\u2014the higher-order LUAD 7p (four antigens) and "
-    "LSCC 1q (three antigens) sets reach the high single digits because adding "
-    "antigens shrinks the independence baseline, while the bivalent LUAD 1q, LUAD "
-    f"5p and LSCC 3q pairs sit near {min(_biv_enr):.1f}\u2013{max(_biv_enr):.1f}\u00d7. "
-    "The load-bearing result is direction and significance\u2014the amplicon drives "
-    "coordinated same-cell surface presentation for every construct\u2014rather than "
-    "any single fold value.")
+    f"same cell more often than independent detection would predict, scored "
+    "against a depth-stratified null (each antigen permuted within per-cell "
+    "sequencing-depth deciles, so the null preserves the depth structure that "
+    "otherwise inflates co-detection). "
+    f"Of the {n_sc_tested} tested constructs, {n_sig} are co-detected above "
+    f"independence ({c_lo:.2f}\u2013{c_hi:.2f}\u00d7), each with permutation "
+    "p = 0.001 and a donor-block bootstrap interval clear of 1.0; "
+    f"{n_bord} more (the trivalent GBM 7q set) is permutation-significant with a "
+    f"bootstrap interval that just touches 1.0, and {n_ns} "
+    f"(the bivalent LUAD 1q and GBM 20q pairs) are not significant on this null "
+    "(0.99\u20131.00\u00d7). "
+    "The magnitudes are modest \u2014 a marginal-only null returns several-fold "
+    "higher values, but most of that is the depth artefact the stratified null "
+    "removes \u2014 and the higher-valence LUAD 7p (four antigens) set retains the "
+    "largest true excess (1.45\u00d7), consistent with amplicon-driven coordination. "
+    "Critically, LUAD 7p survives removal of its one driver, EGFR: the "
+    "passenger-only ITGB8+TSPAN13+TTYH3 set is still co-detected at 1.30\u00d7 "
+    "(95% CI 1.13\u20131.47, p = 0.001), so the co-targeting rests on passengers, "
+    "not on the driver. Most notably, the glioblastoma constructs \u2014 nominated "
+    "without any GBM surface-abundance measurement, from predicted transmissibility "
+    "alone \u2014 reproduce the "
+    f"same pattern: {len(_gbm_sig)} of the {len(_gbm_tested)} GBM constructs "
+    "(19p ATP13A1+TMED1 at 1.12\u00d7, 20p ATRN+PTPRA at 1.10\u00d7) are co-detected "
+    "above independence with intervals clear of 1.0, so the full predict\u2192"
+    "surface-gate\u2192single-cell-verify path closes in a cancer type whose proteome "
+    "is not tissue-referenced and so drives no measured nomination. The load-bearing "
+    "result is the direction and significance "
+    "of same-cell co-occurrence, not any single fold value.")
 para(
     "The off-tumour side is where AND-gating earns its selectivity. A normal cell "
     "binds an avidity AND-gate only if its weakest (limiting) antigen clears the "
@@ -536,11 +610,14 @@ figure("fig6_andgate.png",
        "constructs whose cohort has a malignant single-cell slice (LUAD: 41,615 cells / "
        "130 donors; LSCC: 33,234 cells / 42 donors; CELLxGENE). (a) Same-cell "
        "co-detection enrichment in malignant cells for each construct "
-       "(observed / independent expectation; donor-block bootstrap 95% CI, 1,000 "
-       "resamples; marginal-preserving permutation p = 0.001, 1,000 permutations). All "
-       "five are above independence; the higher-valence LUAD 7p (four antigens) and "
-       "LSCC 1q (three antigens) sets reach the high single digits, while the bivalent "
-       "sets sit near 1.4\u20131.6\u00d7 (enrichment scales with valence\u2014see text). "
+       "(observed / depth-expected co-detection; donor-block bootstrap 95% CI, 1,000 "
+       "resamples; depth-stratified permutation p, 1,000 permutations, each antigen "
+       "shuffled within per-cell sequencing-depth deciles). Constructs are shown for "
+       "the three cohorts with a malignant single-cell atlas (LUAD, LSCC measured; "
+       "GBM prediction-only); those above independence span 1.05\u20131.45\u00d7 "
+       "(p = 0.001, interval clear of 1.0), while the LUAD 1q and GBM 20q pairs are "
+       "not significant. A marginal-only null returns several-fold higher values, "
+       "most of which is the depth artefact this null removes (see text). "
        "(b) Fraction of Human Protein Atlas normal cell types in which all antigens of "
        "a construct exceed a per-antigen threshold, at detection (10 nTPM) versus "
        "binding-relevant (25, 50 nTPM) levels; raising the threshold collapses the "
@@ -561,12 +638,12 @@ para(
     "tiering makes inexpensive. Concrete entry points are amplicon-positive cell "
     "lines identified from DepMap 23Q4 copy number (all anchor genes at relative "
     "copy number \u2265 1.4 in the matching lineage): the LUAD 7p set "
-    "(EGFR+ITGB8+TSPAN13+TTYH3) in NCI-H3255, NCI-H1838 and HCC4006, with the "
-    "amplicon-negative LUAD lines NCI-H441 and NCI-H358 as single-antigen controls; "
-    "the LUAD 1q and LSCC 1q sets in NCI-H23/HCC1833 and LUDLU-1/GT3TKB respectively; "
+    "(ITGB8+TSPAN13+TTYH3, driver EGFR excluded) in NCI-H3255, NCI-H1838 and "
+    "HCC4006, with the amplicon-negative LUAD lines NCI-H441 and NCI-H358 as "
+    "single-antigen controls; the LSCC 1q set (HSD17B7+MPZL1+NCSTN) in LUDLU-1/GT3TKB; "
     "and the squamous 3q set (ATP11B+TFRC) in the 3q-amplified lines HCC95 and "
-    "LC-1/sq. The LUAD 7p, LUAD 1q and LSCC 1q entry points additionally have their "
-    "same-cell co-detection confirmed here (Figure 5).")
+    "LC-1/sq. The LUAD 7p and LSCC 1q entry points additionally have their same-cell "
+    "co-detection confirmed here on the depth-stratified null (Figure 5).")
 figure("fig7_experimental_plan.png",
        "Figure 6. From in-silico nomination to the bench. Each in-silico output "
        "maps to one wet-lab test with an explicit go/no-go criterion, with named "
@@ -587,7 +664,7 @@ para(
     "genes transmit but where the control lies. Second, "
     "transmissibility is intrinsic and therefore portable\u2014predictable from gene "
     "biology alone, not positional, and stable across lineages\u2014so the map "
-    "extends by prediction to cancer types that have no proteome, with the "
+    "extends by prediction to cancer types that lack a tissue-referenced proteome, with the "
     "empirical-Bayes posterior making explicit how much of each nomination is "
     "measured and how much predicted. Third, the modality and the genetics fit: "
     "co-amplified passengers rise together with an amplicon the tumour is selected "
@@ -617,9 +694,15 @@ para(
     "lung-squamous 3q amplicon is expected to be actionable across a large share of "
     "3q-gained lung-squamous patients, not only the tumour in which it was measured. "
     "This is a within-cancer-type, across-patient claim; it is distinct from and does "
-    "not depend on the weaker cross-lineage transfer of the transmissibility ranking "
-    "(Figure 2c), which is what additionally licenses extending the map by prediction "
-    "to cancer types with no proteome of their own.")
+    "not depend on the weaker cross-lineage transfer of the transmissibility ranking. "
+    "The measured cross-cohort correlations bear this out: observed transmissibility "
+    "correlates strongly between the two lung subtypes (Spearman \u03c1 = 0.82 over "
+    "632 shared genes), moderately between lung and endometrial (0.55\u20130.66), and "
+    "weakly with the more distant clear-cell renal cohort (0.11\u20130.19) \u2014 the "
+    "gradient expected if the gates are set by cell of origin. It is this within- and "
+    "near-lineage portability, not a universal cross-cancer constant, that additionally "
+    "licenses extending the map by prediction to related cancer types with no "
+    "tissue-referenced proteome of their own.")
 para(
     "The clinical reading is deliberately measured. The nominations are "
     "transcript- and prediction-level calls about surface protein, not "
@@ -641,7 +724,17 @@ para(
     "abundance but does not by itself establish that both antigens reach "
     "binding-relevant surface density; the normal-tissue threshold analysis "
     "addresses magnitude on the off-tumour side but the on-tumour density claim "
-    "still requires protein measurement. The chromatin gate is quantified from both "
+    "still requires protein measurement. Co-detection is scored against a null that "
+    "controls for per-cell sequencing depth, which reduces the enrichments to modest "
+    "excess (1.05\u20131.45\u00d7) and renders one bivalent pair non-significant; the "
+    "argument rests on the direction and significance of same-cell co-occurrence "
+    "together with the threshold-gated normal sparing, not on large fold values. "
+    "The nomination is also amplification-threshold dependent: at a stringent "
+    "high-level cut (adjusted copy number \u2265 2.0) the recurrent-amplicon set and "
+    "the antigen list shrink substantially and only the LSCC 3q and LUAD 5p "
+    "constructs survive intact (Supplementary Table S3); we use \u2265 1.4 because the "
+    "clinical premise is the broad, near-ubiquitous segmental gains that define these "
+    "amplicons, not rare focal high-level events. The chromatin gate is quantified from both "
     "promoter DNA methylation (GDC EPIC arrays, mapped to genes through the Illumina "
     "manifest) and tumour ATAC accessibility, which prove complementary.")
 
@@ -742,13 +835,24 @@ para(
     "co-elevated genes (FDR < 0.10) with observed transmissibility \u2265 0.40 that pass "
     "a live UniProt topology gate\u2014at least 20 extracellular residues on a "
     "membrane-anchored protein to be scored accessible, with \u2265 50 required for "
-    "nomination as a confidently accessible epitope. Each antigen is tagged by measured "
-    "and predicted evidence and by its DepMap dependency effect. "
+    "nomination as a confidently accessible epitope. Because transmissibility and "
+    "co-elevation are both derived from the same tissue-referenced protein-abundance "
+    "indicator (protein rank > 0.80), they are not independent filters but two views "
+    "of the same protein signal \u2014 transmissibility summarising its level across "
+    "amplified tumours, co-elevation testing its enrichment in amplified versus "
+    "non-amplified cases \u2014 so the surface-topology gate is the one orthogonal "
+    "criterion; the experimental Cell Surface Protein Atlas{cite:BauschFluck2015} is "
+    "used as a corroborating flag, not a gate. Each antigen is tagged by measured and "
+    "predicted evidence, driver and essentiality status, CSPA membership, and its "
+    "DepMap dependency effect. "
     "Same-cell co-detection enrichment is the observed fraction of malignant cells "
     "co-detecting all antigens of a set divided by the product of per-antigen detection "
     "rates, with donor-block bootstrap 95% intervals (1,000 resamples) and a "
-    "marginal-preserving permutation p (1,000 permutations, each antigen column "
-    "shuffled independently), computed in the LUAD and LSCC malignant single-cell "
+    "depth-stratified permutation p (1,000 permutations; each antigen column shuffled "
+    "independently within per-cell sequencing-depth deciles, so the null preserves both "
+    "per-gene detection rate and per-cell depth and the enrichment measures "
+    "co-detection beyond what shared depth alone produces), computed in the LUAD and "
+    "LSCC malignant single-cell "
     "slices (CELLxGENE: 41,615 cells / 130 donors and 33,234 cells / 42 donors). "
     "Because a higher-valence set has a smaller independence baseline, the enrichment "
     "ratio scales with the number of antigens; the load-bearing claim is the direction "
@@ -872,6 +976,71 @@ add_table(["Layer", "Source", "Samples", "Role in the analysis", "State"],
 para("Sample counts are the exact parsed dimensions for each layer; counts "
      "marked \u2018~\u2019 are rounded totals for whole reference databases (CORUM "
      "complexes, DepMap cell lines).", italic=True)
+
+# ============================ SUPPLEMENTARY TABLE S3 =========================
+doc.add_page_break()
+H("Supplementary Table S3. Amplification-threshold sensitivity", level=2)
+para("The full nomination funnel recomputed at the working amplification "
+     "threshold (adjusted copy number \u2265 1.4, the broad-gain regime the "
+     "clinical premise rests on) and at a stringent high-level threshold "
+     "(\u2265 2.0). High-level focal amplification is rarer, so every funnel "
+     "stage contracts and only the LSCC 3q (ATP11B+TFRC) and LUAD 5p "
+     "(CLPTM1L+SLC12A7) constructs survive intact at \u2265 2.0; the broad-gain "
+     "threshold is used because near-ubiquitous segmental gains, not rare focal "
+     "events, are the actionable target.", italic=True)
+_d1 = cfg.DIR_TAB / "d1_threshold_sensitivity.csv"
+if _d1.exists():
+    _rows = list(_csv.DictReader(open(_d1)))
+    add_table(["Funnel stage", "CN \u2265 1.4", "CN \u2265 2.0"],
+              [[r["metric"], r["thresh_1.4"], r["thresh_2.0"]] for r in _rows], fs=8)
+
+# ============================ SUPPLEMENTARY TABLE S4 =========================
+doc.add_page_break()
+H("Supplementary Table S4. Prediction-only nominations in a cohort with no tissue-referenced proteome (GBM)", level=2)
+para("Glioblastoma has copy number, mRNA and raw proteome in CPTAC \u2014 and so "
+     "contributes to the transmission cascade \u2014 but its proteome is not "
+     "referenced to a matched normal tissue of origin, the quantity co-elevation "
+     "requires, so GBM contributes no measured surface nomination. Running the "
+     "gene-property predictor end-to-end on GBM copy number alone (recurrent "
+     "amplicon \u2192 predicted transmissibility \u2265 0.40 \u2192 UniProt surface "
+     "gate) nominates the antigens below without using any GBM protein measurement. "
+     "The canonical GBM receptor-tyrosine-kinase amplicon targets EGFR (7p) "
+     "and MET (7q) are recovered from prediction alone, and 5 of 11 nominations are "
+     "confirmed on the experimental Cell Surface Protein Atlas. Assembled into "
+     "multivalent constructs and tested in 390,761 malignant GBM cells (208 donors), "
+     "the 19p (ATP13A1+TMED1) and 20p (ATRN+PTPRA) sets are co-detected above "
+     "independence on the depth-stratified null (1.12\u00d7 and 1.10\u00d7, p = 0.001, "
+     "intervals clear of 1.0) and the 7q (MET+SLC12A9+SLC4A2) set is permutation-"
+     "significant \u2014 so the full predict\u2192surface-gate\u2192single-cell-verify "
+     "path closes without any GBM surface-abundance measurement: the nomination "
+     "uses gene-intrinsic prediction, the surface call uses UniProt topology, and "
+     "the verification uses single-cell detection \u2014 none of them a GBM "
+     "tissue-referenced proteome.",
+     italic=True)
+_m2 = cfg.DIR_TAB / "m2_gbm_prediction_only.csv"
+if _m2.exists():
+    _rows = list(_csv.DictReader(open(_m2)))
+    def _y(v): return "yes" if str(v).lower()=="true" else "\u2014"
+    add_table(["Antigen","Arm","GBM amp. freq.","Pred. transmiss.","Ecto (aa)","TM","CSPA"],
+              [[r["antigen"], r["arm"], f'{float(r["gbm_amp_freq"]):.2f}',
+                f'{float(r["pred_transmit"]):.2f}', f'{float(r["ecto_aa"]):.0f}',
+                f'{float(r["n_tm"]):.0f}', _y(r.get("cspa_confirmed"))] for r in _rows], fs=7.5)
+
+# ============================ SUPPLEMENTARY TABLE S5 =========================
+doc.add_page_break()
+H("Supplementary Table S5. Observed cross-cohort transmissibility transfer", level=2)
+para("Observed (measured, not predicted) transmissibility computed independently "
+     "in each proteome-supported cohort, then correlated between cohort pairs "
+     "(Spearman, genes with \u2265 20 amplified cases in both). Transfer is strong "
+     "within lineage (the two lung subtypes), moderate to related epithelium, and "
+     "weak to the distant clear-cell renal cohort \u2014 the gradient expected if "
+     "the regulatory gates are set by cell of origin. This is the empirical basis "
+     "for the within-cancer-type portability claim in the Discussion.", italic=True)
+_m6 = cfg.DIR_TAB / "m6_observed_cross_cohort.csv"
+if _m6.exists():
+    _rows = list(_csv.DictReader(open(_m6)))
+    add_table(["Cohort pair","Shared genes","Spearman \u03c1","p"],
+              [[r["pair"], r["n_genes"], f'{float(r["rho"]):.2f}', r["p"]] for r in _rows], fs=8)
 
 # ============================ REFERENCES =====================================
 doc.add_page_break()

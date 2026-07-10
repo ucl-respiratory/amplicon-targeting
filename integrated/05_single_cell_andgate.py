@@ -34,11 +34,15 @@ ish.apply_style(sizes=(9, 8, 7))
 
 # Co-target sets testable in single-cell: sourced from the pan-cancer construct
 # table (04d) so this figure always matches Table 2, restricted to the cohorts
-# with a malignant single-cell slice (LUAD, LSCC). Each set is (cohort, [antigens]).
+# with a malignant single-cell slice (LUAD, LSCC measured; GBM prediction-only).
+# Each set is (cohort, [antigens]).
+SC_COHORTS = ("LUAD", "LSCC", "GBM")
+
 def _load_sets():
     con = pd.read_csv(cfg.DIR_TAB / "adc_constructs.csv")
-    con = con[con.single_cell_tested & con.cohort.isin(["LUAD", "LSCC"])]
+    con = con[con.single_cell_tested & con.cohort.isin(SC_COHORTS)]
     sets, order = {}, []
+    # order: cohort group, then most-enriched first within cohort
     for _, r in con.sort_values(["cohort", "enrich"], ascending=[True, False]).iterrows():
         amp = r["amplicon"]
         sets[amp] = (r["cohort"], [g.strip() for g in str(r["antigens"]).split("+")])
@@ -47,29 +51,50 @@ def _load_sets():
 
 SETS, SET_ORDER = _load_sets()
 
-def enrich_ci(D, donors, rng, n_boot=cfg.N_BOOTSTRAP, n_perm=cfg.N_PERMUTATION):
-    """Same-cell co-detection enrichment with donor-block bootstrap CI and a
-    marginal-preserving permutation p (shuffle each gene's column independently)."""
+def _depth_bins(nnz, n_bins=cfg.SC_DEPTH_BINS):
+    qs = np.quantile(nnz, np.linspace(0, 1, n_bins + 1)); qs[0] -= 1; qs[-1] += 1
+    return np.digitize(nnz, qs[1:-1])
+
+def _perm_codet_depth(D, binid, rng):
+    """One depth-stratified permutation: within each per-cell depth bin, shuffle
+    each antigen column independently — preserves per-gene marginals AND per-cell
+    depth, so co-detection expected from depth alone is the null."""
+    Dp = np.empty_like(D); k = D.shape[1]
+    for b in np.unique(binid):
+        ix = np.where(binid == b)[0]
+        if len(ix) == 0: continue
+        for j in range(k):
+            Dp[ix, j] = D[ix[rng.permutation(len(ix))], j]
+    return Dp.all(1).mean()
+
+def enrich_ci(D, donors, nnz, rng, n_boot=cfg.N_BOOTSTRAP, n_perm=cfg.N_PERMUTATION):
+    """Same-cell co-detection enrichment against a DEPTH-STRATIFIED null.
+    Co-detection is inflated by per-cell sequencing depth, so we permute each
+    antigen column within per-cell depth (nnz) deciles rather than globally: the
+    enrichment is observed / depth-expected co-detection, and the permutation p
+    asks whether observed exceeds what depth structure alone produces. Also
+    reports the naive marginal-null enrichment for comparison."""
     n = D.shape[0]
     obs = D.all(1).mean()
-    exp = float(np.prod(D.mean(0)))
-    e0 = obs / exp if exp > 0 else np.nan
+    exp_marg = float(np.prod(D.mean(0)))
+    binid = _depth_bins(nnz)
+    perm = np.array([_perm_codet_depth(D, binid, rng) for _ in range(n_perm)])
+    exp_depth = float(perm.mean())
+    e0 = obs / exp_depth if exp_depth > 0 else np.nan
+    pval = (np.sum(perm >= obs) + 1) / (n_perm + 1)
     uniq = np.unique(donors); d_to_rows = {d: np.where(donors == d)[0] for d in uniq}
     boots = []
     for _ in range(n_boot):
         samp = rng.choice(uniq, size=len(uniq), replace=True)
-        Db = D[np.concatenate([d_to_rows[d] for d in samp])]
-        ee = float(np.prod(Db.mean(0)))
-        if ee > 0: boots.append(Db.all(1).mean() / ee)
+        rows = np.concatenate([d_to_rows[d] for d in samp])
+        Db = D[rows]; nb = nnz[rows]
+        eb = _perm_codet_depth(Db, _depth_bins(nb), rng)
+        if eb > 0: boots.append(Db.all(1).mean() / eb)
     lo, hi = np.percentile(boots, [2.5, 97.5]) if boots else (np.nan, np.nan)
-    perm = np.empty(n_perm)
-    for i in range(n_perm):
-        Dp = np.empty_like(D)
-        for j in range(D.shape[1]): Dp[:, j] = D[rng.permutation(n), j]
-        perm[i] = Dp.all(1).mean()
-    pval = (np.sum(perm >= obs) + 1) / (n_perm + 1)
-    return dict(n=int(n), n_donors=int(len(uniq)), obs_pct=obs*100, exp_pct=exp*100,
-                enrich=e0, ci_lo=lo, ci_hi=hi, perm_p=pval)
+    return dict(n=int(n), n_donors=int(len(uniq)), obs_pct=obs*100,
+                exp_pct=exp_depth*100, exp_marg_pct=exp_marg*100,
+                enrich=e0, enrich_marginal=obs/exp_marg if exp_marg>0 else np.nan,
+                ci_lo=lo, ci_hi=hi, perm_p=pval)
 
 def load_cxg(code):
     p = cfg.PATHS[f"cxg_{code.lower()}"]
@@ -95,18 +120,19 @@ def normal_burden():
     return pd.DataFrame(rows)
 
 def main():
-    have_cxg = all(load_cxg(c) is not None for c in ("LUAD", "LSCC"))
+    have_cxg = all(load_cxg(c) is not None for c in SC_COHORTS)
     rng = np.random.default_rng(cfg.SEED)
     ci = None
     if have_cxg:
-        slices = {c: load_cxg(c) for c in ("LUAD", "LSCC")}
+        slices = {c: load_cxg(c) for c in SC_COHORTS}
         rows = []
         for sn in SET_ORDER:
             code, genes = SETS[sn]; df = slices[code]
             genes = [g for g in genes if g in df.columns]
             if len(genes) < 2: continue
-            D = df[genes].to_numpy().astype(int); don = df["donor_id"].to_numpy()
-            r = enrich_ci(D, don, rng); r["set"] = sn; rows.append(r)
+            D = (df[genes].to_numpy() > 0).astype(int); don = df["donor_id"].to_numpy()
+            nnz = df["nnz"].to_numpy().astype(float)
+            r = enrich_ci(D, don, nnz, rng); r["set"] = sn; rows.append(r)
         ci = pd.DataFrame(rows)
         ci.to_csv(cfg.DIR_TAB / "andgate_enrichment.csv", index=False)
     else:
@@ -116,23 +142,40 @@ def main():
     nb = normal_burden()
 
     # ---- Figure 6: (a) on-tumour co-detection, (b) normal-tissue collapse ---
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.8))
-    C_LUAD, C_LSCC = "#2c6fbb", "#c0392b"
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5.4))
+    # cohort colours threaded with the manuscript's other figures
+    C_COH = {"LUAD": "#2c6fbb", "LSCC": "#c0392b", "GBM": "#3a3a3a"}
 
     axa = axes[0]
     if ci is not None and len(ci):
         ciI = ci.set_index("set").reindex([s for s in SET_ORDER if s in ci.set.values])
         y = np.arange(len(ciI))
         err = np.vstack([ciI.enrich - ciI.ci_lo, ciI.ci_hi - ciI.enrich])
-        cols = [C_LUAD if s.startswith("LUAD") else C_LSCC for s in ciI.index]
-        axa.barh(y, ciI.enrich, xerr=err, color=cols, error_kw=dict(lw=1.1, capsize=3))
+        coh = [SETS[s][0] for s in ciI.index]
+        cols = [C_COH.get(c, "#777") for c in coh]
+        # significance: permutation p<0.05 AND bootstrap CI clear of 1.0
+        sig = (ciI.perm_p < 0.05) & (ciI.ci_lo > 1.0)
+        bars = axa.barh(y, ciI.enrich, xerr=err, color=cols,
+                        error_kw=dict(lw=1.0, capsize=2.5))
+        # non-significant bars: hollow (face lightened) so they read as "no enrichment"
+        for b, s in zip(bars, sig):
+            if not s:
+                b.set_alpha(0.35); b.set_hatch("///")
         axa.axvline(1, color="k", ls="--", lw=0.9)
         axa.set_yticks(y); axa.set_yticklabels(ciI.index); axa.invert_yaxis()
-        axa.set_xlabel("same-cell co-detection enrichment\n(observed / independent)")
-        axa.set_title("On tumour: antigens co-occur in the same malignant cell\n"
-                      "far above independence", fontsize=9, loc="left")
+        axa.set_xlabel("same-cell co-detection enrichment\n(observed / depth-expected)")
+        axa.set_title("On tumour: antigens co-detected in the same malignant\n"
+                      "cell above a depth-matched null (hatched = not significant)",
+                      fontsize=9, loc="left")
         axa.annotate("independent", xy=(1, len(ciI)-0.5), xytext=(4, 0),
                      textcoords="offset points", fontsize=7, color="#555")
+        # cohort legend (threaded colours)
+        from matplotlib.patches import Patch
+        seen = [c for c in ("LUAD", "LSCC", "GBM") if c in coh]
+        lab = {"LUAD": "LUAD (measured)", "LSCC": "LSCC (measured)",
+               "GBM": "GBM (prediction-only)"}
+        axa.legend(handles=[Patch(facecolor=C_COH[c], label=lab[c]) for c in seen],
+                   frameon=False, fontsize=7, loc="lower right")
     else:
         axa.text(0.5, 0.5, "CELLxGENE malignant-cell slices\nnot yet built\n"
                  "(data_download stage 16)", ha="center", va="center",

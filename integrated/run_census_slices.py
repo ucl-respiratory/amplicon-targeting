@@ -14,11 +14,23 @@ ctx = soma.SOMATileDBContext(tiledb_config=tcfg)
 # union of nominated antigens per cancer type, sourced from the pan-cancer
 # nomination table (04c) so the census slices always cover the current antigen
 # set rather than a stale hardcoded list.
+# Malignant-cell slices are extracted for every cohort that (a) has nominated
+# antigens and (b) has malignant primary cells in the CELLxGENE census. Of our
+# six cohorts, LUAD/LSCC (measured nominations) and GBM (prediction-only, from
+# 04c/M2) meet both; CCRCC, UCEC and PDA have no malignant primary cells in the
+# census (renal cells are annotated as epithelial subtypes, not a malignant
+# compartment) so cannot be tested and are reported as nominated-only.
 _ant = pd.read_csv(cfg.DIR_TAB / "adc_target_antigens.csv")
 SETS = {code: sorted(_ant.loc[_ant.cohort == code, "antigen"].unique())
         for code in ("LUAD", "LSCC")}
+# GBM antigens are prediction-only (no CPTAC GBM proteome) and live in a
+# separate table produced by the M2 analysis.
+_gbm_csv = cfg.DIR_TAB / "m2_gbm_prediction_only.csv"
+if _gbm_csv.exists():
+    SETS["GBM"] = sorted(pd.read_csv(_gbm_csv)["antigen"].unique())
 print("census gene sets:", {k: len(v) for k, v in SETS.items()})
-DISEASE = {"LUAD":"lung adenocarcinoma","LSCC":"squamous cell lung carcinoma"}
+DISEASE = {"LUAD":"lung adenocarcinoma","LSCC":"squamous cell lung carcinoma",
+           "GBM":"glioblastoma"}
 
 od = cfg.PATHS["cxg_luad"].parent; od.mkdir(parents=True, exist_ok=True)
 census = cellxgene_census.open_soma(census_version=CENSUS_VERSION, context=ctx)

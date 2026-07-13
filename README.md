@@ -4,7 +4,9 @@ Code for the bioRxiv preprint _"From amplicon to antigen: a quantified
 transmission map that nominates multi-antigen antibody–drug-conjugate co-target
 sets across cancer types"_ (Lam, Walker-Samuel & Pennycuick, 2026).
 
-Created as part of the Claude Science Hackathon, July 2026. We thank Anthropic and Glastone Institutes for their support.
+A copy of this manuscript can be found at https://github.com/ucl-respiratory/amplicon-targeting/blob/main/biorxiv/manuscript.pdf. This was submitted to medRxiv on 13th July 2026. The repository contains all code necessary to reproduce all findings reported.
+
+This project was created as part of the Claude Science Hackathon, July 2026. We thank Anthropic and Glastone Institutes for their support.
 
 Cancer amplicons carry many genes, most of them innocent passengers. This
 codebase traces how a copy-number amplification reaches the cell surface —

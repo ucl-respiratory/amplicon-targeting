@@ -209,11 +209,18 @@ DEPMAP_FILES <- data.table(
 # as-is (context-aware essentiality splits on ' (').
 #   CRISPRGeneDependency.csv         -> Chronos dependency probability (models x genes), ~394 MB
 #   AchillesCommonEssentialControls.csv -> common-essential gene control list
+#   CRISPRGeneEffect.csv             -> Chronos gene-effect (models x genes), ~401 MB
+#       (dep_mean_effect in the feature table; more negative = more essential.
+#        Distinct from the dependency PROBABILITY above: the predictor's
+#        dep_mean_effect and Table 1's DepMap column both read this file.)
 DEPMAP_CRISPR_FILES <- data.table(
-  figshare_name = c("CRISPRGeneDependency.csv", "AchillesCommonEssentialControls.csv"),
+  figshare_name = c("CRISPRGeneDependency.csv", "CRISPRGeneEffect.csv",
+                    "AchillesCommonEssentialControls.csv"),
   figshare_url  = c("https://ndownloader.figshare.com/files/43346574",
+                    "https://ndownloader.figshare.com/files/43346616",
                     "https://ndownloader.figshare.com/files/43346361"),
-  analysis_name = c("CRISPRGeneDependency.csv", "AchillesCommonEssentialControls.csv")
+  analysis_name = c("CRISPRGeneDependency.csv", "CRISPRGeneEffect.csv",
+                    "AchillesCommonEssentialControls.csv")
 )
 # DepMap proteomics (Gygi/CCLE) is NOT in the DepMap 23Q4 omics release; it comes
 # from the CCLE proteomics quant table. Recorded here for the manifest.

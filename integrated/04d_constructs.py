@@ -68,7 +68,10 @@ def enrich(df, genes, seed=cfg.SEED, n_boot=cfg.N_BOOTSTRAP, n_perm=cfg.N_PERMUT
         eb = _perm_codet_depth(Db, _depth_bins(nb), rng)
         if eb > 0: bs.append(ob / eb)
     lo, hi = np.nanpercentile(bs, [2.5, 97.5]) if bs else (np.nan, np.nan)
+    # ci_lo_raw keeps full precision so the "interval clear of 1.0" significance
+    # test is not distorted by 2-dp display rounding (e.g. LSCC_1q lo=1.0038).
     return dict(enrich=round(enr, 2), ci_lo=round(lo, 2), ci_hi=round(hi, 2),
+                ci_lo_raw=float(lo), ci_hi_raw=float(hi),
                 perm_p=round(pval, 4),
                 enrich_marginal=round(codet / np.prod(D.mean(0)), 2) if np.prod(D.mean(0)) > 0 else np.nan,
                 n_cells=int(len(df)), n_donors=int(len(ud)))

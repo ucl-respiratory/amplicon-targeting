@@ -125,14 +125,30 @@ def main():
     ci = None
     if have_cxg:
         slices = {c: load_cxg(c) for c in SC_COHORTS}
+        # Enrichment/CI/perm_p are the SINGLE authoritative construct values computed
+        # by 04d_constructs.py (adc_constructs.csv); this figure reads them so Table 2
+        # and Figure 6a are identical by construction rather than two independent
+        # bootstraps of the same quantity. We recompute only the ABSOLUTE co-detection
+        # fraction (obs_pct) here, which 04d does not store and the text quotes.
+        con = pd.read_csv(cfg.DIR_TAB / "adc_constructs.csv")
+        con = con[con.single_cell_tested & con.amplicon.isin(SET_ORDER)]
         rows = []
         for sn in SET_ORDER:
+            r = con[con.amplicon == sn]
+            if not len(r):
+                continue
+            r = r.iloc[0]
             code, genes = SETS[sn]; df = slices[code]
             genes = [g for g in genes if g in df.columns]
-            if len(genes) < 2: continue
-            D = (df[genes].to_numpy() > 0).astype(int); don = df["donor_id"].to_numpy()
-            nnz = df["nnz"].to_numpy().astype(float)
-            r = enrich_ci(D, don, nnz, rng); r["set"] = sn; rows.append(r)
+            D = (df[genes].to_numpy() > 0).astype(int) if len(genes) >= 2 else None
+            obs_pct = float(D.all(1).mean() * 100) if D is not None else np.nan
+            rows.append(dict(set=sn, enrich=r["enrich"], ci_lo=r["ci_lo"],
+                             ci_hi=r["ci_hi"],
+                             ci_lo_raw=r.get("ci_lo_raw", r["ci_lo"]),
+                             perm_p=r["perm_p"],
+                             enrich_marginal=r.get("enrich_marginal", np.nan),
+                             n=int(r["n_cells"]), n_donors=int(r["n_donors"]),
+                             obs_pct=obs_pct))
         ci = pd.DataFrame(rows)
         ci.to_csv(cfg.DIR_TAB / "andgate_enrichment.csv", index=False)
     else:
@@ -154,7 +170,9 @@ def main():
         coh = [SETS[s][0] for s in ciI.index]
         cols = [C_COH.get(c, "#777") for c in coh]
         # significance: permutation p<0.05 AND bootstrap CI clear of 1.0
-        sig = (ciI.perm_p < 0.05) & (ciI.ci_lo > 1.0)
+        # (use full-precision lower bound so 2-dp rounding doesn't flip a call)
+        _lo = ciI["ci_lo_raw"] if "ci_lo_raw" in ciI.columns else ciI["ci_lo"]
+        sig = (ciI.perm_p < 0.05) & (_lo > 1.0)
         bars = axa.barh(y, ciI.enrich, xerr=err, color=cols,
                         error_kw=dict(lw=1.0, capsize=2.5))
         # non-significant bars: hollow (face lightened) so they read as "no enrichment"

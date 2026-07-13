@@ -1,4 +1,0 @@
-config,cv,n_trees,seed,spearman,r2,aupr,random_ap,aupr_lift,perm_p,perm_null_mean,perm_null_max,perm_z,n_perm
-all_features_incl_G8,leave-gene-out 10-fold,600,2,0.5474,0.322,0.7827,0.5,1.5654,,,,,
-excl_G8,leave-gene-out 10-fold,600,2,0.518,0.2948,0.7706,0.5,1.5411,,,,,
-permutation_null_B1000,leave-gene-out 10-fold,300,2,0.5514,,,,,0.000999000999000999,0.0002,0.0579,35.0,1000.0

@@ -57,7 +57,31 @@ def _extracellular_aa(entry):
             if s is not None and e is not None: ecto += (e - s + 1)
     return tm, ecto
 
-def fetch_topology(genes):
+def _topology_cache_path():
+    return cfg.DIR_TAB / "uniprot_topology_cache.parquet"
+
+def fetch_topology(genes, use_cache=True):
+    """UniProt membrane topology per gene. Cached to DIR_TAB/uniprot_topology_cache.parquet
+    so the nomination is deterministic across runs: cached genes are served from disk,
+    only genes not yet cached are fetched live, and the cache is updated. Set use_cache
+    False to force a full live re-fetch."""
+    genes = sorted(set(genes))
+    cache_path = _topology_cache_path()
+    cached = pd.DataFrame()
+    if use_cache and cache_path.exists():
+        cached = pd.read_parquet(cache_path)
+        have = set(cached.gene)
+        missing = [g for g in genes if g not in have]
+    else:
+        missing = genes
+    if missing:
+        fresh = _fetch_topology_live(missing)
+        cached = pd.concat([cached, fresh], ignore_index=True).drop_duplicates("gene", keep="last")
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cached.to_parquet(cache_path, index=False)
+    return cached[cached.gene.isin(genes)].reset_index(drop=True)
+
+def _fetch_topology_live(genes):
     genes = sorted(set(genes)); rows = []
     for i in range(0, len(genes), 80):
         batch = genes[i:i+80]
@@ -100,26 +124,18 @@ def surfaceome_universe(atlas):
     intracellular (ribosome biogenesis, RNA processing); the target space is
     surface genes on amplicons, ranked by transmissibility WITHIN that set.
 
-    When data_download is built, the surface flag + measured co-elevation come
-    from the amplicon analysis. Until then, the committed ADC cross-reference
-    (surface genes on the 3q amplicon, already transmissibility-scored) is the
-    universe, and the predicted arm extends it to surface genes genome-wide."""
-    have_data = cfg.PATHS["str_omic"].exists()
-    if have_data:
-        co = ish.amplicon_coelevation()
-        surf_co = co[co.is_surface == 1].copy()
-        surf_co["measured_coelevated"] = surf_co.fdr < cfg.FDR_ALPHA
-        uni = surf_co.merge(atlas, on="gene", how="left")
-        uni = uni.rename(columns={"tumor_code": "cancer_type"})
-        return uni, True
-    # committed fallback: the ADC cross-reference table = surface genes, scored
-    xref = pd.read_csv(cfg.GI_PATHS["atlas"].parent /
-                       "tournament_master_tab11_transmissibility_adc_crossref.csv")
-    xref = xref[xref.surface == 1].copy()
-    xref["measured_coelevated"] = xref.observed_transmissibility >= \
-        xref.observed_transmissibility.median()
-    xref["cancer_type"] = "3q-amplified (committed)"
-    return xref, False
+    The surface flag + measured co-elevation come from the amplicon analysis on
+    data_download/from_source (str_omic)."""
+    if not cfg.PATHS["str_omic"].exists():
+        raise FileNotFoundError(
+            f"str_omic table not found at {cfg.PATHS['str_omic']}.\n"
+            "  Run: Rscript data_download/run_all.R")
+    co = ish.amplicon_coelevation()
+    surf_co = co[co.is_surface == 1].copy()
+    surf_co["measured_coelevated"] = surf_co.fdr < cfg.FDR_ALPHA
+    uni = surf_co.merge(atlas, on="gene", how="left")
+    uni = uni.rename(columns={"tumor_code": "cancer_type"})
+    return uni, True
 
 def main():
     atlas = ish.load_atlas()

@@ -40,9 +40,9 @@ def main():
     # ---- candidates: co-elevated on recurrent amplicon + transmitted ----
     co = pd.read_csv(cfg.DIR_TAB / "amplicon_coelevation.csv")
     co_sig = co[co.fdr < cfg.FDR_ALPHA].copy()
-    atlas = pd.read_csv(cfg.GI_PATHS["atlas"])[
+    atlas = ish.load_atlas()[
         ["gene","observed_transmissibility","predicted_transmissibility_oof","n_amplified_cases"]]
-    feat = pd.read_csv(cfg.GI_PATHS["feature_table"])
+    feat = ish.load_feature_table()
     dep = feat[["gene","dep_mean_effect"]] if "dep_mean_effect" in feat.columns else \
           pd.DataFrame({"gene": [], "dep_mean_effect": []})
 

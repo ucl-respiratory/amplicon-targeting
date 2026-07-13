@@ -63,6 +63,7 @@ def _tab_census():
     return DATA_ROOT / "tables"
 _TAB_CENSUS = _tab_census()
 RAW    = Path(os.environ.get("CNT_RAW",    DATA_ROOT / "data" / "raw"))
+FEAT   = RAW / "features"
 DEPMAP = Path(os.environ.get("CNT_DEPMAP", DATA_ROOT / "data" / "raw" / "depmap"))
 PARSED = Path(os.environ.get("CNT_PARSED", DATA_ROOT / "data" / "parsed"))
 
@@ -148,17 +149,28 @@ CONF_TIERS = {
 # ---- Surface-topology gate --------------------------------------------------
 MIN_ECTODOMAIN_AA = 20   # UniProt extracellular residues required for an accessible epitope
 
-# ---- Reused pre-computed tables (gene_intrinsic export; committed to repo) ---
-# The transmissibility atlas (measured observed + predicted OOF prior) and the
-# gene feature table are committed under gene_intrinsic/. Until a fresh
-# data_download+predictor re-fit lands, these provide the predictor outputs.
-GI_EXPORT = Path(__file__).resolve().parent.parent / "gene_intrinsic" / "figures_tables" / "tournament_master"
-GI_PATHS = {
-    "atlas":         GI_EXPORT / "tournament_master_tab12_transmissibility_atlas.csv",
-    "feature_table": GI_EXPORT / "tournament_master_tab09_gene_feature_table.csv",
-    "transfer":      GI_EXPORT / "tournament_master_tab06_transfer_stability.csv",
-    "shap":          GI_EXPORT / "tournament_master_tab16_transmissibility_shap.csv",
-    "leads_valid":   Path(__file__).resolve().parent.parent / "gene_intrinsic" / "validation" / "leads_validation.csv",
+# Canonical oncogenic drivers among the nominated antigens. Used to emit a
+# passenger-only (driver-excluded) construct variant so the "co-targeting rests on
+# passengers, not the driver" claim is computed rather than asserted. EGFR is the
+# only nominated antigen that is a canonical amplicon driver (lung 7p).
+DRIVERS = {"EGFR"}
+
+# ---- Cached reference inputs (from_source) ----------------------------------
+# The transmissibility atlas and gene feature table are computed in integrated/
+# by 00a_transmissibility.py and 00d_gene_features.py from data_download/from_source;
+# nothing here reads the old gene_intrinsic/ folder. leads_validation is a small
+# cached CCLE cross-validation reference, carried in from_source alongside the
+# external-descriptor snapshot.
+LEADS_VALID = FEAT / "leads_validation.csv"
+
+# Optional cross-check: if a prior committed atlas/feature table is present under
+# gene_intrinsic/, 00a/00d print a reproduction correlation against it. This is a
+# diagnostic only — the pipeline never reads it for any computed value, and the
+# path is allowed to be absent (the folder can be removed).
+_GI_EXPORT = Path(__file__).resolve().parent.parent / "gene_intrinsic" / "figures_tables" / "tournament_master"
+GI_CROSSCHECK = {
+    "atlas":         _GI_EXPORT / "tournament_master_tab12_transmissibility_atlas.csv",
+    "feature_table": _GI_EXPORT / "tournament_master_tab09_gene_feature_table.csv",
 }
 
 def require(*keys):

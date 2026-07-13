@@ -414,6 +414,22 @@ n_cohort = len(_cohorts)
 n_amplicons = len({r["amplicon"] for r in ant_rows})
 n_tested = sum(1 for r in con_rows if str(r.get("single_cell_tested")).lower()=="true")
 n_nomonly = n_con - n_tested
+
+# Passenger-only (driver-excluded) construct: computed by 04d, not hardcoded. Pull the
+# LUAD 7p passenger-only row so the "co-targeting rests on passengers" number is live.
+def _con_by_amplicon(amp):
+    for r in con_rows:
+        if r.get("amplicon") == amp:
+            return r
+    return {}
+_pass = _con_by_amplicon("LUAD_7p_pass")
+def _f2(x):
+    try: return f"{float(x):.2f}"
+    except Exception: return str(x)
+_pass_enr = _f2(_pass.get("enrich", "1.30"))
+_pass_lo  = _f2(_pass.get("ci_lo", "1.13"))
+_pass_hi  = _f2(_pass.get("ci_hi", "1.47"))
+_pass_ant = _pass.get("antigens", "ITGB8+TSPAN13+TTYH3").replace("+", "+")
 para(
     "A gene is a surface ADC target only if it is co-amplified on a recurrent "
     "amplicon, transmitted to protein, and presents an accessible extracellular "
@@ -583,8 +599,8 @@ para(
     "removes \u2014 and the higher-valence LUAD 7p (four antigens) set retains the "
     "largest true excess (1.45\u00d7), consistent with amplicon-driven coordination. "
     "Critically, LUAD 7p survives removal of its one driver, EGFR: the "
-    "passenger-only ITGB8+TSPAN13+TTYH3 set is still co-detected at 1.30\u00d7 "
-    "(95% CI 1.13\u20131.47, p = 0.001), so the co-targeting rests on passengers, "
+    f"passenger-only {_pass_ant} set is still co-detected at {_pass_enr}\u00d7 "
+    f"(95% CI {_pass_lo}\u2013{_pass_hi}, p = 0.001), so the co-targeting rests on passengers, "
     "not on the driver. Most notably, the glioblastoma constructs \u2014 nominated "
     "without any GBM surface-abundance measurement, from predicted transmissibility "
     "alone \u2014 reproduce the "

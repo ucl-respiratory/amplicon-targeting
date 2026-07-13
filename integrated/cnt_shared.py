@@ -41,23 +41,42 @@ def load_dep_prob():
     df.columns = [c.split(" (")[0] for c in df.columns]
     return df
 
-# ---- GI committed exports (predictor outputs; reused until fresh re-fit) -----
+# ---- Transmissibility atlas + feature table (computed in integrated/ from
+#      data_download/from_source by 00a_transmissibility.py and 00d_gene_features.py;
+#      fall back to the committed GI exports only if the integrated tables are absent).
 @functools.lru_cache(maxsize=1)
 def load_atlas():
-    """Transmissibility atlas: measured observed + predicted OOF prior, per gene."""
-    return pd.read_csv(cfg.GI_PATHS["atlas"])
+    """Transmissibility atlas: observed (00a) + predicted OOF prior (02), per gene.
+
+    Prefers integrated/tables/transmissibility_atlas.csv; if the predictor OOF has
+    been fitted (predictor_oof.csv), its predicted column is merged in so downstream
+    stages see predicted_transmissibility_oof exactly as the committed atlas provided.
+    """
+    integ = cfg.DIR_TAB / "transmissibility_atlas.csv"
+    if integ.exists():
+        a = pd.read_csv(integ)
+        oof = cfg.DIR_TAB / "predictor_oof.csv"
+        if oof.exists():
+            o = pd.read_csv(oof)[["gene", "predicted_oof"]].rename(
+                columns={"predicted_oof": "predicted_transmissibility_oof"})
+            a = a.merge(o, on="gene", how="left")
+        return a
+    raise FileNotFoundError(
+        f"transmissibility_atlas.csv not found in {cfg.DIR_TAB}.\n"
+        "  Run: python 00a_transmissibility.py  (and 02_predictor.py for the OOF prior)")
 
 @functools.lru_cache(maxsize=1)
 def load_feature_table():
-    return pd.read_csv(cfg.GI_PATHS["feature_table"])
-
-@functools.lru_cache(maxsize=1)
-def load_transfer():
-    return pd.read_csv(cfg.GI_PATHS["transfer"])
+    integ = cfg.DIR_TAB / "gene_feature_table.csv"
+    if integ.exists():
+        return pd.read_csv(integ)
+    raise FileNotFoundError(
+        f"gene_feature_table.csv not found in {cfg.DIR_TAB}.\n"
+        "  Run: python 00d_gene_features.py")
 
 @functools.lru_cache(maxsize=1)
 def load_leads_validation():
-    return pd.read_csv(cfg.GI_PATHS["leads_valid"])
+    return pd.read_csv(cfg.LEADS_VALID)
 
 # ---- mechanism: transmission / responsiveness / attenuation -----------------
 _MIN_N_PER_TYPE = 20

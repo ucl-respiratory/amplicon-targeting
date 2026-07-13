@@ -80,8 +80,8 @@ def enrich(df, genes, seed=cfg.SEED, n_boot=1000, n_perm=1000):
                 n_cells=int(len(df)), n_donors=int(len(ud)))
 
 def main():
-    atlas = pd.read_csv(cfg.GI_PATHS["atlas"]).set_index("gene")
-    feat  = pd.read_csv(cfg.GI_PATHS["feature_table"]).set_index("gene")
+    atlas = ish.load_atlas().set_index("gene")
+    feat  = ish.load_feature_table().set_index("gene")
 
     # ---- per-antigen evidence ----
     rows = []

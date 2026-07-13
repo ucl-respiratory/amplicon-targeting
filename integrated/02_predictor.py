@@ -13,11 +13,14 @@
 # prediction as a genome-wide prior:
 #   - positional control: leave-chromosome-arm-out vs leave-gene-out (no same-arm
 #     neighbour leaks into a gene's prediction)  [needs arm annotation]
-#   - transfer: cross-lineage rank concordance of predicted transmissibility
-#     (from the committed transfer table)
+#   - transfer: leave-one-lineage-out refit. For each cohort we recompute the
+#     pooled transmissibility label EXCLUDING that cohort, refit the gene-property
+#     predictor, and rank genome-wide; Kendall's W over the six per-refit rankings
+#     is the cross-lineage transfer metric (computed here from str_omic, not read
+#     from any committed export).
 #
-# Inputs (committed GI exports; a fresh data_download+refit would regenerate them):
-#   feature table (gene properties + transmissibility outcome), transfer table.
+# Inputs (all from data_download/from_source, via 00a/00d):
+#   feature table (00d), transmissibility atlas (00a), str_omic (per-cohort labels).
 # Outputs: figures/fig3_predictor.png, tables/predictor_oof.csv
 # =============================================================================
 import sys
@@ -67,6 +70,41 @@ def leave_arm_out(ft, feats, arm_col):
         oof[te] = m.predict(X[te])
     return oof
 
+def per_cohort_label_counts():
+    """Per (cohort, gene): sum and size of the R4-filtered protein-positive target
+    from str_omic (same amplification filter + prot.rel.all>0.83 call as 00a). Lets
+    us pool the transmissibility label over any subset of cohorts."""
+    so = pd.read_csv(cfg.PATHS["str_omic"],
+                     usecols=["gene", "caseid", "tumor_code", "cn", "prot.rel.all"])
+    plo = pd.read_csv(cfg.DATA_ROOT / "out" / "tables" / "ploidy_table.csv")
+    so = so.merge(plo[["caseid", "ploidy_continuous"]], on="caseid", how="left")
+    so["pr"] = so.ploidy_continuous.round().fillna(2)
+    r4 = (so[(so.cn >= so.pr + 1) & (so.cn >= 3)]
+          .dropna(subset=["prot.rel.all"]).drop_duplicates(["caseid", "gene"]).copy())
+    r4["target"] = (r4["prot.rel.all"] > 0.83).astype(float)
+    return r4.groupby(["tumor_code", "gene"])["target"].agg(["sum", "size"]).reset_index()
+
+def leave_lineage_out_transfer(ft, feats, min_cases=20):
+    """Leave-one-lineage-out refit. For each cohort c: recompute the pooled
+    transmissibility label over the OTHER five cohorts, refit the gene-property
+    predictor on it, predict genome-wide, rank. Kendall's W over the six per-refit
+    rankings is the cross-lineage transfer metric (Methods). Fully from-source."""
+    agg = per_cohort_label_counts()
+    ftg = ft.set_index("gene")
+    cohorts = sorted(agg.tumor_code.unique())
+    preds = {}
+    for c in cohorts:
+        oth = agg[agg.tumor_code != c].groupby("gene")[["sum", "size"]].sum()
+        lab = (oth["sum"] / oth["size"])[oth["size"] >= min_cases]
+        common = [g for g in lab.index if g in ftg.index]
+        m = _model().fit(ftg.loc[common, feats].values, lab.loc[common].values)
+        preds[c] = pd.Series(m.predict(ftg[feats].values), index=ftg.index)
+    P = pd.DataFrame(preds).dropna()
+    R = P.rank(); n, k = R.shape
+    S = ((R.sum(axis=1) - R.sum(axis=1).mean()) ** 2).sum()
+    W = 12 * S / (k ** 2 * (n ** 3 - n))
+    return float(W), P, cohorts
+
 def main():
     ft = ish.load_feature_table()
     feats = [c for c in FEATURE_COLS if c in ft.columns]
@@ -91,16 +129,12 @@ def main():
         m = ~np.isnan(oof_arm)
         rho_arm = spearmanr(ft.transmissibility[m], oof_arm[m]).correlation
 
-    # transfer: cross-lineage concordance from the committed transfer table
-    transfer = ish.load_transfer()
-    pct_cols = [c for c in transfer.columns if c.startswith("pct_")]
-    W = None
-    if len(pct_cols) >= 2:
-        R = transfer[pct_cols].rank()
-        # Kendall's W across lineages
-        n, k = R.shape
-        S = ((R.sum(axis=1) - R.sum(axis=1).mean())**2).sum()
-        W = 12*S / (k**2 * (n**3 - n))
+    # transfer: leave-one-lineage-out refit, computed from str_omic (no committed table)
+    try:
+        W, P_transfer, transfer_cohorts = leave_lineage_out_transfer(ft, feats)
+    except Exception as e:
+        print(f"(LOLO transfer skipped: {e})")
+        W, P_transfer, transfer_cohorts = None, None, []
 
     out = ft[["gene", "transmissibility", "predicted_oof"]].copy()
     out.to_csv(cfg.DIR_TAB / "predictor_oof.csv", index=False)
@@ -142,12 +176,12 @@ def main():
     # panel c: transfer across lineages
     axc = fig.add_subplot(gs[0, 2])
     if W is not None:
-        # pairwise rank concordance heat-ish summary: show per-lineage rank corr to mean
-        meanrank = transfer[pct_cols].rank().mean(axis=1)
-        corrs = [spearmanr(transfer[c], meanrank).correlation for c in pct_cols]
-        labels = [c.replace("pct_", "") for c in pct_cols]
+        # per held-out-lineage refit ranking vs the consensus ranking
+        meanrank = P_transfer.rank().mean(axis=1)
+        corrs = [spearmanr(P_transfer[c], meanrank).correlation for c in P_transfer.columns]
         axc.bar(range(len(corrs)), corrs, color="#6c5b9c", width=0.7)
-        axc.set_xticks(range(len(corrs))); axc.set_xticklabels(labels, rotation=45, ha="right")
+        axc.set_xticks(range(len(corrs)))
+        axc.set_xticklabels(list(P_transfer.columns), rotation=45, ha="right")
         axc.set_ylim(0, 1)
         axc.set_ylabel("ρ to consensus ranking")
         axc.set_title(f"Transfers across lineages\nKendall W = {W:.2f}", fontsize=9, loc="left")
@@ -164,6 +198,7 @@ def main():
         "leave_arm_out_rho": None if rho_arm is None else float(rho_arm),
         "positional_delta": None if rho_arm is None else float(abs(rho - rho_arm)),
         "kendall_W": None if W is None else float(W),
+        "kendall_W_method": "leave-one-lineage-out refit over 6 cohorts, from str_omic",
     })
     print(f"leave-gene-out: rho={rho:.4f} R2={r2:.4f} n={len(ft)} feats={len(feats)}")
     print(f"positional: leave-arm-out rho={rho_arm} (delta from LGO)")

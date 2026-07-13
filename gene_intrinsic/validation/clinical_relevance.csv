@@ -1,7 +1,0 @@
-cohort,gene,n,n_events,expr_HR_per_SD,expr_HR_CI,expr_cox_p_raw,expr_cox_p_fdr,amp_split,amp_n_high,amp_n_rest,amp_median_OS_high,amp_median_OS_rest,amp_logrank_p_raw,amp_logrank_p_fdr
-LUAD,ATP13A3,494,177,1.087,0.94-1.26,0.265,0.3976,high-amp(2) vs rest,10,488,19.8,21.6,0.3761,0.5642
-LUAD,ATP1B3,494,177,1.138,0.99-1.31,0.0749,0.2247,gain+amp vs neutral/loss,123,375,20.6,21.6,0.5328,0.6394
-LUAD,PLSCR1,494,177,1.144,1.01-1.29,0.0283,0.1696,gain+amp vs neutral/loss,125,373,20.1,22.0,0.2689,0.5378
-LUSC,ATP13A3,477,203,0.902,0.78-1.04,0.1669,0.3339,high-amp(2) vs rest,141,339,25.0,20.9,0.0633,0.3798
-LUSC,ATP1B3,477,203,0.96,0.83-1.10,0.562,0.562,high-amp(2) vs rest,53,427,24.1,21.1,0.6816,0.6816
-LUSC,PLSCR1,477,203,0.928,0.79-1.09,0.3726,0.4471,high-amp(2) vs rest,64,416,26.5,20.9,0.1907,0.5378

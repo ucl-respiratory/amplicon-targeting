@@ -35,7 +35,7 @@ def _perm_codet_depth(D, binid, rng):
             Dp[ix, j] = D[ix[rng.permutation(len(ix))], j]
     return (Dp.sum(1) == k).mean()
 
-def enrich(df, genes, seed=cfg.SEED, n_boot=1000, n_perm=1000):
+def enrich(df, genes, seed=cfg.SEED, n_boot=cfg.N_BOOTSTRAP, n_perm=cfg.N_PERMUTATION):
     """Same-cell co-detection enrichment against a DEPTH-STRATIFIED null.
 
     Co-detection of any gene pair is inflated by per-cell sequencing depth
@@ -78,7 +78,7 @@ COHORT_COLORS = {"LUAD":"#4C72B0","LSCC":"#55A868","CCRCC":"#C44E52","UCEC":"#81
 def _figure(nom, con):
     import matplotlib.pyplot as plt
     ish.apply_style(sizes=(9,8,7))
-    atlas = pd.read_csv(cfg.GI_PATHS["atlas"])
+    atlas = ish.load_atlas()
     fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.1))
 
     # Panels (a) and (b) show the MEASURED nomination plane (observed
@@ -185,6 +185,25 @@ def main():
             rec.update(dict(enrich=np.nan, ci_lo=np.nan, ci_hi=np.nan, perm_p=np.nan,
                             n_cells=np.nan, n_donors=np.nan, single_cell_tested=False))
         rows.append(rec)
+
+        # Passenger-only variant: if the construct carries any canonical oncogenic
+        # driver, emit a driver-excluded row so the "co-targeting rests on passengers,
+        # not the driver" claim is computed, not asserted. DRIVERS from config.
+        drv = [g for g in genes if g in cfg.DRIVERS]
+        passengers = [g for g in genes if g not in cfg.DRIVERS]
+        if drv and len(passengers) >= 2:
+            prec = dict(construct=f"{amp}_pass ({'+'.join(passengers)})", cohort=cohort,
+                        amplicon=f"{amp}_pass", antigens="+".join(passengers),
+                        valence={2:"bivalent",3:"trivalent"}.get(len(passengers), f"{len(passengers)}-valent"),
+                        k=len(passengers), evidence=sub.evidence.iloc[0], driver_excluded="+".join(drv))
+            if df is not None and all(g in df.columns for g in passengers):
+                pe = enrich(df, passengers)
+                if pe:
+                    prec.update(pe); prec["single_cell_tested"] = True
+            if "single_cell_tested" not in prec:
+                prec.update(dict(enrich=np.nan, ci_lo=np.nan, ci_hi=np.nan, perm_p=np.nan,
+                                 n_cells=np.nan, n_donors=np.nan, single_cell_tested=False))
+            rows.append(prec)
 
     con = pd.DataFrame(rows)
     con = con.sort_values(["single_cell_tested","enrich"], ascending=[False, False])

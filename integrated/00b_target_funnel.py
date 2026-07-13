@@ -21,7 +21,7 @@ def main():
     #   genome universe -> transmitted -> co-elevated on a recurrent amplicon
     #   (Fisher FDR<0.1, from 00c) -> transmitted co-elevated -> surface-accessible
     #   (UniProt ectodomain gate) -> nominated antigens. Every count is computed.
-    atlas = pd.read_csv(cfg.GI_PATHS["atlas"])
+    atlas = ish.load_atlas()
     n1 = len(atlas)
     n2 = int((atlas["observed_transmissibility"] >= TRANSMIT_MIN).sum())
 
